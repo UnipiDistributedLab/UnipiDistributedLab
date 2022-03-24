@@ -9,6 +9,6 @@ public class UnipiDistributedMain {
         restRouter.startRouting();
 
         UnipiDistributedRpcRouter rpcRouter = new UnipiDistributedRpcRouter();
-        restRouter.startRouting();
+        rpcRouter.startRouting();
     }
 }
