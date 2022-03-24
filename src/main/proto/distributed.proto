@@ -1,0 +1,20 @@
+syntax="proto3";
+option java_multiple_files = true;
+option java_package = "io.grpc.unipi.distributed";
+option java_outer_classname = "ApiProto";
+option objc_class_prefix = "HLW";
+package org.example.distributed;
+
+service DistributeAuthentication{
+        rpc hello(Empty)returns(APIResponse);
+}
+
+message APIResponse{
+        string responseMessage = 1;
+        int32 messageCode = 2;
+}
+
+
+message Empty{
+
+}
