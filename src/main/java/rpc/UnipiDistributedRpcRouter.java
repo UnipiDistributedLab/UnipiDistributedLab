@@ -1,11 +1,12 @@
 package rpc;
 
+import conformers.RoutingControllerConformer;
 import io.grpc.Server;
 import io.grpc.ServerBuilder;
 
 import java.io.IOException;
 
-public class UnipiDistributedRpcRouter {
+public class UnipiDistributedRpcRouter implements RoutingControllerConformer {
     public void startRouting() {
         Server server = ServerBuilder
                 .forPort(8080)

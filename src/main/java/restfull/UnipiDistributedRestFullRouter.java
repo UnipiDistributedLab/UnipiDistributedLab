@@ -1,15 +1,18 @@
 package restfull;
 
+import com.google.gson.Gson;
+import conformers.RoutingControllerConformer;
+import restfull.controllers.LoginController;
+
 import static spark.Spark.*;
 
-public class UnipiDistributedRestFullRouter {
+public class UnipiDistributedRestFullRouter implements RoutingControllerConformer {
 
     public void startRouting() {
         get("/hello", (req, res) -> {
             return "Hello world";
         });
-        post("/auth/login", (req, res) -> {
-            return "hey post";
-        });
+        LoginController loginController = new LoginController();
+        loginController.startRouting();
     }
 }

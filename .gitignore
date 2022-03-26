@@ -99,3 +99,5 @@ target/protoc-dependencies/bacbdbf5c5f93439030ac46772dee23d/google/type/quaterni
 target/protoc-dependencies/bacbdbf5c5f93439030ac46772dee23d/google/type/timeofday.proto
 target/protoc-plugins/protoc-3.19.2-windows-x86_64.exe
 target/protoc-plugins/protoc-gen-grpc-java-1.45.0-windows-x86_64.exe
+target/generated-sources/protobuf/java/io/grpc/unipi/distributed/UserName.java
+target/generated-sources/protobuf/java/io/grpc/unipi/distributed/UserNameOrBuilder.java
