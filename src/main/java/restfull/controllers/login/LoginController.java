@@ -1,4 +1,4 @@
-package restfull.controllers;
+package restfull.controllers.login;
 
 import com.google.gson.Gson;
 import conformers.RoutingControllerConformer;

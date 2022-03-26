@@ -1,4 +1,4 @@
-package restfull.controllers;
+package restfull.controllers.login;
 
 public class LoginAuthRequest {
     String userName;
