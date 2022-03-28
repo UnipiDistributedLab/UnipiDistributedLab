@@ -10,7 +10,7 @@ public class UnipiDistributedRpcRouter implements RoutingControllerConformer {
     public void startRouting() {
         Server server = ServerBuilder
                 .forPort(8080)
-                .addService(new AuthLoginProto())
+                .addService(new AuthLoginImpl())
                 .build();
 
         try {
