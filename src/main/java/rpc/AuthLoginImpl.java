@@ -8,6 +8,6 @@ import io.grpc.unipi.distributed.UserName;
 public class AuthLoginImpl extends DistributeAuthenticationGrpc.DistributeAuthenticationImplBase {
     @Override
     public void doAuthLogin(UserName request, StreamObserver<APIResponse> responseObserver) {
-        super.authLogin(request, responseObserver);
+        super.doAuthLogin(request, responseObserver);
     }
 }
