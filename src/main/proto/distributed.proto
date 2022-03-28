@@ -6,7 +6,7 @@ option objc_class_prefix = "HLW";
 package org.example.distributed;
 
 service DistributeAuthentication{
-        rpc authLogin(UserName)returns(APIResponse);
+        rpc doAuthLogin(UserName)returns(APIResponse);
 }
 
 message APIResponse{
