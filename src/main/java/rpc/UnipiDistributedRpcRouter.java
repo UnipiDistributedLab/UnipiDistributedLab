@@ -9,8 +9,9 @@ import java.io.IOException;
 public class UnipiDistributedRpcRouter implements RoutingControllerConformer {
     public void startRouting() {
         Server server = ServerBuilder
-                .forPort(8080)
+                .forPort(8082)
                 .addService(new AuthLoginImpl())
+                .addService(new StreamServiceImpl())
                 .build();
 
         try {
