@@ -226,3 +226,4 @@ target/protoc-dependencies/7677c5936afc42de8f7a5296dfa121f1/google/protobuf/comp
 target/protoc-dependencies/*
 target/protoc-plugins/protoc-3.19.2-osx-x86_64.exe
 target/protoc-plugins/protoc-gen-grpc-java-1.45.0-osx-x86_64.exe
+target/generated-sources/protobuf/
