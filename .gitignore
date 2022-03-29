@@ -164,3 +164,9 @@ target/protoc-dependencies/e26b5d7bec70be1a5d0de689e3b9d701/google/protobuf/wrap
 target/protoc-dependencies/e26b5d7bec70be1a5d0de689e3b9d701/google/protobuf/compiler/plugin.proto
 target/protoc-plugins/protoc-3.19.2-osx-x86_64.exe
 target/protoc-plugins/protoc-gen-grpc-java-1.45.0-osx-x86_64.exe
+target/generated-sources/protobuf/grpc-java/io/grpc/examples/helloworld/GreeterGrpc.java
+target/generated-sources/protobuf/java/io/grpc/examples/helloworld/HelloReply.java
+target/generated-sources/protobuf/java/io/grpc/examples/helloworld/HelloReplyOrBuilder.java
+target/generated-sources/protobuf/java/io/grpc/examples/helloworld/HelloRequest.java
+target/generated-sources/protobuf/java/io/grpc/examples/helloworld/HelloRequestOrBuilder.java
+target/generated-sources/protobuf/java/io/grpc/examples/helloworld/HelloWorldProto.java
