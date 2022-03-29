@@ -21,12 +21,8 @@ message UserName{
 }
 
 service StockQuoteProvider {
-
         rpc serverSideStreamingGetListStockQuotes(Stock) returns (stream StockQuote) {}
-
-        rpc clientSideStreamingGetStatisticsOfStocks(stream Stock) returns (StockQuote) {}
-
-        rpc bidirectionalStreamingGetListsStockQuotes(stream Stock) returns (stream StockQuote) {}
+        rpc chatStreamingGetListStockQuotes(stream Stock) returns (stream StockQuote) {}
 }
 message Stock {
         string ticker_symbol = 1;
@@ -37,4 +33,6 @@ message StockQuote {
         double price = 1;
         int32 offer_number = 2;
         string description = 3;
+        string ticker_symbol = 4;
+        string company_name = 5;
 }

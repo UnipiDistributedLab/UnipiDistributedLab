@@ -16,24 +16,62 @@ public class StreamServiceImpl extends StockQuoteProviderGrpc.StockQuoteProvider
         observers.add(responseObserver);
         for (int i = 1; i <= 5; i++) {
             StockQuote stockQuote = StockQuote.newBuilder()
-                    .setPrice(100)
+                    .setPrice(100 + i)
                     .setOfferNumber(i)
                     .setDescription("Price for stock:" + request.getTickerSymbol())
+                    .setTickerSymbol(request.getTickerSymbol())
+                    .setCompanyName(request.getCompanyName())
                     .build();
-            ArrayList<StreamObserver<StockQuote>> toBeRemoved = new ArrayList<>();
-            for (StreamObserver<StockQuote> observer : observers) {
-                try {
-                    observer.onNext(stockQuote);
-                    System.out.println("Sent message to: " + observer);
-                } catch (Exception e) {
-                    toBeRemoved.add(observer);
-                    System.out.println(e.getMessage() + " " + observer.toString());
-                }
+            sendBroadCaste(stockQuote);
+        }
+    }
+
+    @Override
+    public StreamObserver<Stock> chatStreamingGetListStockQuotes(StreamObserver<StockQuote> responseObserver) {
+        return new StreamObserver<Stock>() {
+
+            @Override
+            public void onNext(Stock value) {
+
+                System.out.println(value);
+                StockQuote stockQuote = StockQuote.newBuilder()
+                        .setPrice(100)
+                        .setOfferNumber(100)
+                        .setDescription("Price for stock:" + value.getTickerSymbol())
+                        .setTickerSymbol(value.getTickerSymbol())
+                        .setCompanyName(value.getCompanyName())
+                        .build();
+                sendBroadCaste(stockQuote);
             }
 
-            for (StreamObserver<StockQuote> observer : toBeRemoved) {
-                observers.remove(observer);
+            @Override
+            public void onError(Throwable t) {
+                t.getMessage();
+                observers.remove(responseObserver);
             }
+
+            @Override
+            public void onCompleted() {
+                System.out.println("Completed!");
+//                responseObserver.onCompleted();
+//                observers.remove(responseObserver);
+            }
+        };
+    }
+
+    private void sendBroadCaste(StockQuote stockQuote)  {
+        ArrayList<StreamObserver<StockQuote>> toBeRemoved = new ArrayList<>();
+        for (StreamObserver<StockQuote> observer : observers) {
+            try {
+                observer.onNext(stockQuote);
+                System.out.println("Sent message to: " + observer);
+            } catch (Exception e) {
+                toBeRemoved.add(observer);
+                System.out.println(e.getMessage() + " " + observer.toString());
+            }
+        }
+        for (StreamObserver<StockQuote> observer : toBeRemoved) {
+            observers.remove(observer);
         }
     }
 }
