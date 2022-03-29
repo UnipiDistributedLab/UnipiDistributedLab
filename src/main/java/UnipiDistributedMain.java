@@ -1,12 +1,10 @@
-import restfull.UnipiDistributedRestFullRouter;
-import rpc.UnipiDistributedRpcRouter;
+
+import static spark.Spark.get;
 
 public class UnipiDistributedMain {
     public static void main(String[] args) {
-        UnipiDistributedRestFullRouter restRouter = new UnipiDistributedRestFullRouter();
-        restRouter.startRouting();
-
-        UnipiDistributedRpcRouter rpcRouter = new UnipiDistributedRpcRouter();
-        rpcRouter.startRouting();
+        get("/hello", (req, res) -> {
+            return "Hello world";
+        });
     }
 }
