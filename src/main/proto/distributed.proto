@@ -14,7 +14,6 @@ message APIResponse{
         int32 messageCode = 2;
 }
 
-
 message UserName{
         string userName = 1;
         string passWord = 2;
