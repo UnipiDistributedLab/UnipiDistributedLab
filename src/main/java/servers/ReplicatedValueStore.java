@@ -185,11 +185,14 @@ public class ReplicatedValueStore {
             try {
                 lock.lock();
                 String storedValue = storage.get(request.getCounter());
+                int syncAttemps = 0;
                 while (storedValue == null) {
                     lock.unlock();
                     Thread.sleep(100);
                     lock.lock();
                     storedValue = storage.get(request.getCounter());
+                    logger.info("Attemps no: " + syncAttemps);
+                    syncAttemps += 1;
                 }
                 String[] splits = storedValue.split(":");
                 String value = splits[0];
