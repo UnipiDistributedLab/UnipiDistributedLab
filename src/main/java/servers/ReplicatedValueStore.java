@@ -1,11 +1,13 @@
+package servers;
 
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.Server;
 import io.grpc.ServerBuilder;
-import io.grpc.examples.LamportClock.*;
+import io.grpc.examples.servers.LamportClock.*;
 import io.grpc.stub.StreamObserver;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
@@ -15,12 +17,14 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Logger;
 
 public class ReplicatedValueStore {
-    private static final Logger logger = Logger.getLogger(ValueStore.class.getName());
+    private static final Logger logger = Logger.getLogger(ReplicatedValueStore.class.getName());
     private Server server;
     private ValueStoreGrpc.ValueStoreBlockingStub blockingStub = null;
     private LamportClock clock;
     private Lock lock = new ReentrantLock();
     private Map<Integer, String> storage = new TreeMap<>();
+    private ScheduledThreadPoolExecutor carrierThread = new ScheduledThreadPoolExecutor(1);
+    private Runnable periodicWork;
 
     private void start(int port) throws IOException {
         server = ServerBuilder.forPort(port)
@@ -36,19 +40,25 @@ public class ReplicatedValueStore {
                             .usePlaintext()
                             .build());
 
-            Runnable periodicWork = () -> {
+            periodicWork = () -> {
                 UpdateRequest request = null;
                 try {
                     lock.lock();
-                    request = UpdateRequest.newBuilder().putAllMap(storage).build();
+                    request = UpdateRequest
+                            .newBuilder()
+                            .putAllMap(storage)
+                            .build();
                 } finally {
                     lock.unlock();
+                    if (storage.isEmpty()) return;
+                    try {
+                        blockingStub.updateSecondary(request);
+                    } catch (Exception e) {
+                        System.out.println(e.getMessage());
+                    }
                 }
-                blockingStub.updateSecondary(request);
             };
-
-            ScheduledThreadPoolExecutor carrierThread = new ScheduledThreadPoolExecutor(1);
-            carrierThread.scheduleAtFixedRate(periodicWork, 0, 2, TimeUnit.SECONDS);
+            carrierThread.scheduleAtFixedRate(periodicWork, 2, 10, TimeUnit.SECONDS);
         }
 
         Runtime.getRuntime().addShutdownHook(new Thread() {
@@ -127,7 +137,7 @@ public class ReplicatedValueStore {
         public void write(WriteRequest req, StreamObserver<WriteReply> responseObserver) {
             clock.tick(req.getCounter());
             try {
-                lock.unlock();
+                lock.lock();
                 storage.put(clock.getClock(), req.getValue() + ":" + req.getTimestamp());
             } finally {
                 lock.unlock();
@@ -145,7 +155,7 @@ public class ReplicatedValueStore {
         public void readAll(Empty req, StreamObserver<ReadAllReply> responseObserver) {
             String storageOutput = null;
             try {
-                lock.unlock();
+                lock.lock();
                 storageOutput = storage.toString();
             } finally {
                 lock.unlock();
@@ -168,6 +178,35 @@ public class ReplicatedValueStore {
             UpdateReply reply = UpdateReply.newBuilder().setStatus(0).build();
             responseObserver.onNext(reply);
             responseObserver.onCompleted();
+        }
+
+        @Override
+        public void read(ReadRequest request, StreamObserver<ReadReply> responseObserver) {
+            try {
+                lock.lock();
+                String storedValue = storage.get(request.getCounter());
+                while (storedValue == null) {
+                    lock.unlock();
+                    Thread.sleep(100);
+                    lock.lock();
+                    storedValue = storage.get(request.getCounter());
+                }
+                String[] splits = storedValue.split(":");
+                String value = splits[0];
+                String timeStamp = splits[1];
+                ReadReply reply = ReadReply
+                        .newBuilder()
+                        .setValue(Integer.parseInt(value))
+                        .setTimestamp(timeStamp)
+                        .setCounter(clock.getClock())
+                        .build();
+                responseObserver.onNext(reply);
+                responseObserver.onCompleted();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            } finally {
+                lock.unlock();
+            }
         }
     }
 }

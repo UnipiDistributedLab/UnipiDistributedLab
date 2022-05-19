@@ -1,3 +1,5 @@
+package servers;
+
 public class LamportClock {
     private int counter;
 

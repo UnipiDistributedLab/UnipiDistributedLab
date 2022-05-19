@@ -1,9 +1,10 @@
-/*
+package client;
+
 import io.grpc.Channel;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.StatusRuntimeException;
-import io.grpc.examples.LamportClock.*;
+import io.grpc.examples.servers.LamportClock.*;
 
 import java.sql.Timestamp;
 import java.util.ArrayList;
@@ -12,13 +13,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-*/
-/**
- * A simple client that requests a greeting from the {@link ValueStore}.
- *//*
-
-public class StorageClient2Channels {
-    private static final Logger logger = Logger.getLogger(HelloWorldClient.class.getName());
+public class StorageClientReadYourWrite {
+    private static final Logger logger = Logger.getLogger(StorageClientReadYourWrite.class.getName());
 
     private final ValueStoreGrpc.ValueStoreBlockingStub blockingStubPrimary;
     private final ValueStoreGrpc.ValueStoreBlockingStub blockingStubSecondary;
@@ -26,22 +22,12 @@ public class StorageClient2Channels {
     private Random generator = new Random();
 
 
-    */
-/**
-     * Construct client for accessing HelloWorld server using the existing channel.
-     *//*
-
-    public StorageClient2Channels(ArrayList<Channel> channel) {
+    public StorageClientReadYourWrite(ArrayList<Channel> channel) {
         blockingStubPrimary = ValueStoreGrpc.newBlockingStub(channel.get(0));
         blockingStubSecondary = ValueStoreGrpc.newBlockingStub(channel.get(1));
     }
 
-    */
-/**
-     * Say hello to server.
-     *//*
-
-    public void write(int value, ValueStoreGrpc.ValueStoreBlockingStub blockingStub) {
+    public int write(int value, ValueStoreGrpc.ValueStoreBlockingStub blockingStub) {
         logger.info("Sending " + value + "to server" + blockingStub.getChannel().toString() + "\n");
         String realtime = new Timestamp(System.currentTimeMillis()).toString();
         clock.increase();
@@ -55,12 +41,14 @@ public class StorageClient2Channels {
         WriteReply response;
         try {
             response = blockingStub.write(request);
-            clock.tick(request.getCounter());
+            clock.tick(response.getCounter());
         } catch (StatusRuntimeException e) {
             logger.log(Level.WARNING, "RPC failed: {0}", e.getStatus());
-            return;
+            //TODO think twice because resets get clock
+            return 0;
         }
         logger.info("Received: " + response.getCounter() + ":" + response.getTimestamp() + ":" + response.getValue());
+        return response.getCounter();
     }
 
     public static void main(String[] args) throws Exception {
@@ -84,22 +72,34 @@ public class StorageClient2Channels {
         }
 
         try {
-            StorageClient2Channels client = new StorageClient2Channels(channels);
-            for (int i = 0; i <= 9; i++) {
-                if (i % 2 == 0) {
-                    client.write(client.generator.nextInt(10000), client.blockingStubPrimary);
-                }
-                if (i % 2 != 0) {
-                    client.write(client.generator.nextInt(10000), client.blockingStubSecondary);
-                }
-            }
+            StorageClientReadYourWrite client = new StorageClientReadYourWrite(channels);
+            int value = client.generator.nextInt(10000);
+//            for (int i = 0; i <= 9; i++) {
+//                if (i % 2 == 0) {
+                int lamportClock = client.write(value, client.blockingStubPrimary);
+//                }
+//                if (i % 2 != 0) {
+//            client.write(client.generator.nextInt(10000), client.blockingStubSecondary);
+            ReadRequest readIdRequest = ReadRequest
+                    .newBuilder()
+                    .setValue(value)
+                    .setCounter(lamportClock)
+                    .build();
+            ReadReply response = client.blockingStubSecondary.read(readIdRequest);
+            logger.info("Read data"+ response.getValue());
+//                }
+//            }
 
             Empty emptyRequest = new Empty();
-            ReadAllReply primaryCopy = client.blockingStubPrimary.readAll(emptyRequest);
-            ReadAllReply secondaryCopy = client.blockingStubSecondary.readAll(emptyRequest);
-
-            logger.info("Data dump (Primary): " + primaryCopy);
-            logger.info("Data dump (Secondary): " + secondaryCopy);
+            try {
+                ReadAllReply primaryCopy = client.blockingStubPrimary.readAll(emptyRequest);
+                ReadAllReply secondaryCopy = client.blockingStubSecondary.readAll(emptyRequest);
+                logger.info("Data dump (Primary): " + primaryCopy.getData());
+                logger.info("Data dump (Secondary): " + secondaryCopy.getData());
+            } catch (StatusRuntimeException e) {
+                logger.log(Level.WARNING, "RPC failed: {0}", e.getStatus());
+                return;
+            }
 
         } finally {
             ManagedChannel tmpPrimary = (ManagedChannel) channels.get(0);
@@ -108,4 +108,4 @@ public class StorageClient2Channels {
             tmpSecondary.shutdownNow().awaitTermination(5, TimeUnit.SECONDS);
         }
     }
-}*/
+}
