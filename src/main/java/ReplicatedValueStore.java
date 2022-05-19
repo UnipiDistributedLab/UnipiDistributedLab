@@ -159,7 +159,7 @@ public class ReplicatedValueStore {
         public void updateSecondary(UpdateRequest req, StreamObserver<UpdateReply> responseObserver) {
             Map<Integer, String> transmittedMap = req.getMapMap();
             try {
-                lock.unlock();
+                lock.lock();
                 storage.clear();
                 storage.putAll(transmittedMap);
             } finally {
