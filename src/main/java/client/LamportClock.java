@@ -9,7 +9,7 @@ public class LamportClock {
 
     public void tick(int requestTime) {
         counter = Integer.max(counter, requestTime);
-        counter++;
+        increase();
     }
 
     public void increase() {

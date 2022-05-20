@@ -7,7 +7,6 @@ import io.grpc.examples.servers.LamportClock.*;
 import io.grpc.stub.StreamObserver;
 
 import java.io.IOException;
-import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
@@ -186,6 +185,7 @@ public class ReplicatedValueStore {
                 lock.lock();
                 String storedValue = storage.get(request.getCounter());
                 int syncAttemps = 0;
+                //here we achieve waiting for synchronization
                 while (storedValue == null) {
                     lock.unlock();
                     Thread.sleep(100);
