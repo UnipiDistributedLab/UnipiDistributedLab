@@ -2,15 +2,14 @@
 import io.grpc.Server;
 import io.grpc.ServerBuilder;
 import io.grpc.stub.StreamObserver;
-import io.grpc.unipi.election.ElectionRequest;
-import io.grpc.unipi.election.ElectionResponse;
-import io.grpc.unipi.election.LeaderElectionGrpc;
+import io.grpc.unipi.election.*;
 import org.checkerframework.checker.units.qual.A;
 import org.w3c.dom.Node;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
@@ -27,11 +26,13 @@ public class NodeServer implements NodeClient.NodeClientListener {
     private HashMap<String, NodeClient> targetsClientsMap = new HashMap();
     private NodeStatus status = NodeStatus.NODE;
     private String leaderTarget;
+    private boolean isUnderElection = false;
     private Integer period = 5;
     private final int currentServerId;
     private static final Logger logger = Logger.getLogger(NodeServer.class.getName());
     private final Integer defaultPort = 50051;
-    private ArrayList<String> pendingTargetsResponses = new ArrayList();
+    //HashMap boolean means that one server send OK and has bigger id
+    private HashMap<String, Boolean> pendingTargetsResponses = new HashMap<>();
 
     private Server server;
 
@@ -66,26 +67,37 @@ public class NodeServer implements NodeClient.NodeClientListener {
     }
 
     private void  startPeriodicCheck() {
+        if (status == NodeStatus.LEADER) return;
         ScheduledThreadPoolExecutor carrierThread = new ScheduledThreadPoolExecutor(1);
         Runnable periodicWork;
-        periodicWork = new Runnable() {
-            public void run() {
+        periodicWork = () -> {
 
-                System.out.println(period);
-                period--;
-
-                if (period < 0) {
-                    System.out.println("Timer Over!");
-                    carrierThread.shutdown();
+            System.out.println(period);
+            if (period == 0) {
+                if (isUnderElection) {
+                    period = 5;
+                    return;
                 }
-                if (period == 0) {
-                    logger.info(" Start election no leader exist");
-                }
+                logger.info(" Start election no leader exist");
+                startElection();
+                return;
             }
+            period--;
         };
         carrierThread.scheduleAtFixedRate(periodicWork, 0, 1, SECONDS);
-        startElection();
 //        carrierThread.scheduleAtFixedRate(periodicWork, 2, period, TimeUnit.SECONDS);
+    }
+
+    private void electionTimeOut() {
+        ScheduledThreadPoolExecutor carrierThread = new ScheduledThreadPoolExecutor(1);
+        Runnable periodicWork;
+        ScheduledFuture periodicScheduler;
+        Integer period = 15;
+        periodicWork = () -> {
+         status =  pendingTargetsResponses.containsValue(true) ? NodeStatus.NODE : NodeStatus.LEADER;
+         pendingTargetsResponses.clear();
+        };
+        carrierThread.scheduleAtFixedRate(periodicWork, 2, period, TimeUnit.SECONDS);
     }
 
     private void stop() throws InterruptedException {
@@ -96,7 +108,7 @@ public class NodeServer implements NodeClient.NodeClientListener {
 
     private void initElectionClient(Integer currentServerId) {
         for (Integer serverId : serversIds) {
-            if (serverId < currentServerId) continue;
+            if (serverId <= currentServerId) continue;
             Integer port = defaultPort + serverId;
             String target = "localhost:" + port;
             targets.add(target);
@@ -106,9 +118,10 @@ public class NodeServer implements NodeClient.NodeClientListener {
     }
 
     private void startElection() {
+        isUnderElection = true;
         for (String target: targets) {
             NodeClient client = targetsClientsMap.get(target);
-            pendingTargetsResponses.add(target);
+            pendingTargetsResponses.put(target, false);
             client.electionTrigger(currentServerId);
         }
     }
@@ -124,18 +137,34 @@ public class NodeServer implements NodeClient.NodeClientListener {
 
     @Override
     public void receveidResponseFrom(String targer, ElectionResponse response) {
-        logger.info("i " + currentServerId + "received response from " + targer);
-        pendingTargetsResponses.remove(targer);
+        logger.info("i " + currentServerId + " received response from " + targer);
+        if (response.hasOkMessage()) {
+            logger.info("i " + currentServerId + " am not a leader");
+        }
+        pendingTargetsResponses.put(targer, response.hasOkMessage());
     }
 
     class ElectionImpl extends LeaderElectionGrpc.LeaderElectionImplBase {
 
         @Override
         public void election(ElectionRequest request, StreamObserver<ElectionResponse> responseObserver) {
-            super.election(request, responseObserver);
-            @Nullable boolean okMessage = request.getServerId() > currentServerId ? true : null;
-            ElectionResponse response = ElectionResponse.newBuilder().setOkMessage(okMessage).build();
-            responseObserver.onNext(response);
+            try {
+                if (request.getServerId() > currentServerId) {
+                    ElectionResponse response = ElectionResponse.newBuilder().setOkMessage(true).build();
+                    responseObserver.onNext(response);
+                    return;
+                }
+                ElectionResponse response = ElectionResponse.newBuilder().build();
+                responseObserver.onNext(response);
+            } catch (Exception e) {
+                logger.info(e.getMessage());
+            }
+        }
+
+        @Override
+        public void leaderHealthCheck(LeaderHelthCheckInfo request, StreamObserver<Empty> responseObserver) {
+            leaderTarget = request.getTarget();
+            period++;
         }
     }
 }

@@ -13,7 +13,7 @@ public class ServerController {
         for (Integer serverId : serversIds) {
             final NodeServer server = new NodeServer(serverId);
             Server serverInst = server.start();
-            server.blockUntilShutdown();
+//            server.blockUntilShutdown();
         }
     }
 }

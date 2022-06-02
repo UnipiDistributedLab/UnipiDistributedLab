@@ -18,6 +18,8 @@ message LeaderHelthCheckInfo {
       string target = 1;
 }
 
+message Empty {}
+
 service LeaderElection{
         rpc election(ElectionRequest)returns(ElectionResponse);
         rpc leaderHealthCheck(LeaderHelthCheckInfo)returns(Empty);

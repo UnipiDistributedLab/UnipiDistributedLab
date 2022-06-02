@@ -10,6 +10,8 @@ import io.grpc.unipi.election.ElectionResponse;
 import io.grpc.unipi.election.LeaderElectionGrpc;
 
 import java.lang.ref.WeakReference;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -31,14 +33,17 @@ public class NodeClient {
         blockingStub = LeaderElectionGrpc.newBlockingStub(channel);
     }
 
-    /** Say hello to server. */
     public void electionTrigger(Integer id) {
         ElectionRequest request = ElectionRequest.newBuilder().setServerId(id).build();
         try {
-            ElectionResponse response = blockingStub.election(request);
-            response.hasOkMessage();
-            if (mListener.get() != null) mListener.get().receveidResponseFrom(target, response);
-            logger.info("Greeting tagret" + target + " : " + response.hasOkMessage());
+            Runnable runnable = () -> {
+                ElectionResponse response = blockingStub.election(request);
+                if (mListener.get() != null) mListener.get().receveidResponseFrom(target, response);
+                logger.info("Greeting tagret" + target + " : " + response.hasOkMessage());
+            };
+            ScheduledThreadPoolExecutor scheduler = new ScheduledThreadPoolExecutor(1);
+            scheduler.schedule(runnable, 0, TimeUnit.SECONDS);
+
         } catch (StatusRuntimeException e) {
             logger.log(Level.WARNING, "RPC failed: {0}", e.getStatus());
             return;
