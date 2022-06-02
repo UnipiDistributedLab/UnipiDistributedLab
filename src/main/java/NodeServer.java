@@ -11,8 +11,11 @@ import org.w3c.dom.Node;
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
+
+import static java.util.concurrent.TimeUnit.SECONDS;
 
 enum NodeStatus {
     LEADER, NODE
@@ -23,6 +26,8 @@ public class NodeServer implements NodeClient.NodeClientListener {
     private ArrayList<String> targets = new ArrayList<>();
     private HashMap<String, NodeClient> targetsClientsMap = new HashMap();
     private NodeStatus status = NodeStatus.NODE;
+    private String leaderTarget;
+    private Integer period = 5;
     private final int currentServerId;
     private static final Logger logger = Logger.getLogger(NodeServer.class.getName());
     private final Integer defaultPort = 50051;
@@ -56,12 +61,36 @@ public class NodeServer implements NodeClient.NodeClientListener {
                 System.err.println("*** server shut down");
             }
         });
+        startPeriodicCheck();
         return  server;
+    }
+
+    private void  startPeriodicCheck() {
+        ScheduledThreadPoolExecutor carrierThread = new ScheduledThreadPoolExecutor(1);
+        Runnable periodicWork;
+        periodicWork = new Runnable() {
+            public void run() {
+
+                System.out.println(period);
+                period--;
+
+                if (period < 0) {
+                    System.out.println("Timer Over!");
+                    carrierThread.shutdown();
+                }
+                if (period == 0) {
+                    logger.info(" Start election no leader exist");
+                }
+            }
+        };
+        carrierThread.scheduleAtFixedRate(periodicWork, 0, 1, SECONDS);
+        startElection();
+//        carrierThread.scheduleAtFixedRate(periodicWork, 2, period, TimeUnit.SECONDS);
     }
 
     private void stop() throws InterruptedException {
         if (server != null) {
-            server.shutdown().awaitTermination(30, TimeUnit.SECONDS);
+            server.shutdown().awaitTermination(30, SECONDS);
         }
     }
 
