@@ -9,7 +9,7 @@ public class ServerController {
      * Main launches the server from the command line.
      */
     public static void main(String[] args) throws IOException, InterruptedException {
-        List<Integer> serversIds = Arrays.asList(0,1,2,3,4,5,6,7);
+        List<Integer> serversIds = NodeServer.serversIds;
         for (Integer serverId : serversIds) {
             final NodeServer server = new NodeServer(serverId);
             Server serverInst = server.start();

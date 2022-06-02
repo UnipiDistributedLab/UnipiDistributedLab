@@ -21,7 +21,7 @@ enum NodeStatus {
 }
 
 public class NodeServer implements NodeClient.NodeClientListener {
-    private List<Integer> serversIds = Arrays.asList(0, 1, 2, 3, 4, 5, 6, 7);
+    public static List<Integer> serversIds = Arrays.asList(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
     private ArrayList<String> targets = new ArrayList<>();
     private HashMap<String, NodeClient> targetsClientsMap = new HashMap();
     private NodeStatus status = NodeStatus.NODE;
@@ -29,6 +29,8 @@ public class NodeServer implements NodeClient.NodeClientListener {
     private boolean isUnderElection = false;
     private Integer period = 5;
     private final int currentServerId;
+    private final int leaderHealthCheckSend = 2;
+    private final int electionTerminatePeriod = 15;
     private static final Logger logger = Logger.getLogger(NodeServer.class.getName());
     private final Integer defaultPort = 50051;
     //HashMap boolean means that one server send OK and has bigger id
@@ -89,8 +91,6 @@ public class NodeServer implements NodeClient.NodeClientListener {
     private void electionTimeOut() {
         ScheduledThreadPoolExecutor carrierThread = new ScheduledThreadPoolExecutor(1);
         Runnable periodicWork;
-        ScheduledFuture periodicScheduler;
-        Integer period = 15;
         periodicWork = () -> {
             // pendingTargetsResponses.isEmpty() -> it's the higher id node so has no pending
             status = pendingTargetsResponses.containsValue(true) ? NodeStatus.NODE : NodeStatus.LEADER;
@@ -100,7 +100,7 @@ public class NodeServer implements NodeClient.NodeClientListener {
             this.period = 5;
             if (status == NodeStatus.LEADER) addLeaderHealthCheck();
         };
-        carrierThread.schedule(periodicWork, period, TimeUnit.SECONDS);
+        carrierThread.schedule(periodicWork, electionTerminatePeriod, TimeUnit.SECONDS);
     }
 
     private void addLeaderHealthCheck() {
@@ -124,7 +124,7 @@ public class NodeServer implements NodeClient.NodeClientListener {
                 client.leaderHealthTrigger(leaderTarget);
             }
         };
-        carrierThread.scheduleAtFixedRate(periodicWork, 0, 3, SECONDS);
+        carrierThread.scheduleAtFixedRate(periodicWork, 0, leaderHealthCheckSend, SECONDS);
     }
 
     private void stop() throws InterruptedException {
