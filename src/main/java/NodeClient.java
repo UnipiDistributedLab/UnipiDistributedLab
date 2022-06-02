@@ -34,9 +34,9 @@ public class NodeClient {
     }
 
     public void electionTrigger(Integer id) {
-        ElectionRequest request = ElectionRequest.newBuilder().setServerId(id).build();
         try {
             Runnable runnable = () -> {
+                ElectionRequest request = ElectionRequest.newBuilder().setServerId(id).build();
                 ElectionResponse response = blockingStub.election(request);
                 if (mListener.get() != null) mListener.get().receveidResponseFrom(target, response);
                 logger.info("Greeting tagret" + target + " : " + response.hasOkMessage());

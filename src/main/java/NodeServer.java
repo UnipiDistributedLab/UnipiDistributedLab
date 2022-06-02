@@ -149,13 +149,17 @@ public class NodeServer implements NodeClient.NodeClientListener {
         @Override
         public void election(ElectionRequest request, StreamObserver<ElectionResponse> responseObserver) {
             try {
-                if (request.getServerId() > currentServerId) {
+                Runnable runnable = () -> {
+                    if (request.getServerId() > currentServerId) {
+                        ElectionResponse response = ElectionResponse.newBuilder().build();
+                        responseObserver.onNext(response);
+                        return;
+                    }
                     ElectionResponse response = ElectionResponse.newBuilder().setOkMessage(true).build();
                     responseObserver.onNext(response);
-                    return;
-                }
-                ElectionResponse response = ElectionResponse.newBuilder().build();
-                responseObserver.onNext(response);
+                };
+                ScheduledThreadPoolExecutor scheduler = new ScheduledThreadPoolExecutor(1);
+                scheduler.schedule(runnable, 0, TimeUnit.SECONDS);
             } catch (Exception e) {
                 logger.info(e.getMessage());
             }
