@@ -5,12 +5,12 @@ import io.grpc.stub.StreamObserver;
 import io.grpc.unipi.election.ElectionRequest;
 import io.grpc.unipi.election.ElectionResponse;
 import io.grpc.unipi.election.LeaderElectionGrpc;
+import org.checkerframework.checker.units.qual.A;
+import org.w3c.dom.Node;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
@@ -18,24 +18,26 @@ enum NodeStatus {
     LEADER, NODE
 }
 
-public class NodeServer {
+public class NodeServer implements NodeClient.NodeClientListener {
     private List<Integer> serversIds = Arrays.asList(0, 1, 2, 3, 4, 5, 6, 7);
     private ArrayList<String> targets = new ArrayList<>();
+    private HashMap<String, NodeClient> targetsClientsMap = new HashMap();
     private NodeStatus status = NodeStatus.NODE;
-    private int id;
+    private final int currentServerId;
     private static final Logger logger = Logger.getLogger(NodeServer.class.getName());
     private final Integer defaultPort = 50051;
+    private ArrayList<String> pendingTargetsResponses = new ArrayList();
 
     private Server server;
 
     public NodeServer(Integer id) {
-        this.id = id;
+        this.currentServerId = id;
         initElectionClient(id);
     }
 
     public Server start() throws IOException {
         /* The port on which the server should run */
-        int port = defaultPort + id;
+        int port = defaultPort + currentServerId;
         server = ServerBuilder.forPort(port)
                 .addService(new ElectionImpl())
                 .build()
@@ -63,11 +65,22 @@ public class NodeServer {
         }
     }
 
-    private void initElectionClient(Integer id) {
+    private void initElectionClient(Integer currentServerId) {
         for (Integer serverId : serversIds) {
-            if (serverId < id) continue;
+            if (serverId < currentServerId) continue;
             Integer port = defaultPort + serverId;
-            targets.add("localhost:" + port);
+            String target = "localhost:" + port;
+            targets.add(target);
+            NodeClient client = new NodeClient(target, this);
+            targetsClientsMap.put(target, client);
+        }
+    }
+
+    private void startElection() {
+        for (String target: targets) {
+            NodeClient client = targetsClientsMap.get(target);
+            pendingTargetsResponses.add(target);
+            client.electionTrigger(currentServerId);
         }
     }
 
@@ -80,12 +93,18 @@ public class NodeServer {
         }
     }
 
+    @Override
+    public void receveidResponseFrom(String targer, ElectionResponse response) {
+        logger.info("i " + currentServerId + "received response from " + targer);
+        pendingTargetsResponses.remove(targer);
+    }
+
     class ElectionImpl extends LeaderElectionGrpc.LeaderElectionImplBase {
 
         @Override
         public void election(ElectionRequest request, StreamObserver<ElectionResponse> responseObserver) {
             super.election(request, responseObserver);
-            @Nullable boolean okMessage = request.getServerId() > id ? true : null;
+            @Nullable boolean okMessage = request.getServerId() > currentServerId ? true : null;
             ElectionResponse response = ElectionResponse.newBuilder().setOkMessage(okMessage).build();
             responseObserver.onNext(response);
         }

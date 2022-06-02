@@ -10,9 +10,10 @@ public class ServerController {
      */
     public static void main(String[] args) throws IOException, InterruptedException {
         List<Integer> serversIds = Arrays.asList(0,1,2,3,4,5,6,7);
-
-        final NodeServer server = new NodeServer(serversIds.get(0));
-        Server serverInst = server.start();
-        server.blockUntilShutdown();
+        for (Integer serverId : serversIds) {
+            final NodeServer server = new NodeServer(serverId);
+            Server serverInst = server.start();
+            server.blockUntilShutdown();
+        }
     }
 }
