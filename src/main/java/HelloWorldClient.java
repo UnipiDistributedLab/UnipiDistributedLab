@@ -11,7 +11,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * A simple client that requests a greeting from the {@link HelloWorldServer}.
+ * A simple client that requests a greeting from the {@link NodeServer}.
  */
 public class HelloWorldClient {
   private static final Logger logger = Logger.getLogger(HelloWorldClient.class.getName());
