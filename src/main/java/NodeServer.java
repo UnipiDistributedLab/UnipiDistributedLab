@@ -42,7 +42,6 @@ public class NodeServer implements NodeClient.NodeClientListener {
     }
 
     public Server start() throws IOException {
-        /* The port on which the server should run */
         int port = defaultPort + currentServerId;
         server = ServerBuilder.forPort(port)
                 .addService(new ElectionImpl())
@@ -63,25 +62,24 @@ public class NodeServer implements NodeClient.NodeClientListener {
             }
         });
         startPeriodicCheck();
-        return  server;
+        return server;
     }
 
-    private void  startPeriodicCheck() {
+    private void startPeriodicCheck() {
         if (status == NodeStatus.LEADER) return;
         ScheduledThreadPoolExecutor carrierThread = new ScheduledThreadPoolExecutor(1);
         Runnable periodicWork;
         periodicWork = () -> {
-
-            System.out.println(period);
             if (period == 0) {
                 if (isUnderElection) {
-                    period = 5;
                     return;
                 }
                 logger.info(" Start election no leader exist");
                 startElection();
+                electionTimeOut();
                 return;
             }
+            System.out.println(period);
             period--;
         };
         carrierThread.scheduleAtFixedRate(periodicWork, 0, 1, SECONDS);
@@ -94,10 +92,39 @@ public class NodeServer implements NodeClient.NodeClientListener {
         ScheduledFuture periodicScheduler;
         Integer period = 15;
         periodicWork = () -> {
-         status =  pendingTargetsResponses.containsValue(true) ? NodeStatus.NODE : NodeStatus.LEADER;
-         pendingTargetsResponses.clear();
+            // pendingTargetsResponses.isEmpty() -> it's the higher id node so has no pending
+            status = pendingTargetsResponses.containsValue(true) ? NodeStatus.NODE : NodeStatus.LEADER;
+            status = pendingTargetsResponses.isEmpty() ? NodeStatus.LEADER : status;
+            pendingTargetsResponses.clear();
+            isUnderElection = false;
+            this.period = 5;
+            if (status == NodeStatus.LEADER) addLeaderHealthCheck();
         };
-        carrierThread.scheduleAtFixedRate(periodicWork, 2, period, TimeUnit.SECONDS);
+        carrierThread.schedule(periodicWork, period, TimeUnit.SECONDS);
+    }
+
+    private void addLeaderHealthCheck() {
+        targets.clear();
+        targetsClientsMap.clear();
+        for (Integer serverId : serversIds) {
+            if (serverId == currentServerId) continue;
+            Integer port = defaultPort + serverId;
+            String target = "localhost:" + port;
+            targets.add(target);
+            NodeClient client = new NodeClient(target, this);
+            targetsClientsMap.put(target, client);
+        }
+        ScheduledThreadPoolExecutor carrierThread = new ScheduledThreadPoolExecutor(1);
+        Runnable periodicWork = () -> {
+            Integer port = defaultPort + currentServerId;
+            String leaderTarget = "localhost:" + port;
+            for (String target : targets) {
+                NodeClient client = targetsClientsMap.get(target);
+                pendingTargetsResponses.put(target, false);
+                client.leaderHealthTrigger(leaderTarget);
+            }
+        };
+        carrierThread.scheduleAtFixedRate(periodicWork, 0, 3, SECONDS);
     }
 
     private void stop() throws InterruptedException {
@@ -119,7 +146,7 @@ public class NodeServer implements NodeClient.NodeClientListener {
 
     private void startElection() {
         isUnderElection = true;
-        for (String target: targets) {
+        for (String target : targets) {
             NodeClient client = targetsClientsMap.get(target);
             pendingTargetsResponses.put(target, false);
             client.electionTrigger(currentServerId);
@@ -138,10 +165,10 @@ public class NodeServer implements NodeClient.NodeClientListener {
     @Override
     public void receveidResponseFrom(String targer, ElectionResponse response) {
         logger.info("i " + currentServerId + " received response from " + targer);
+        pendingTargetsResponses.put(targer, response.hasOkMessage());
         if (response.hasOkMessage()) {
             logger.info("i " + currentServerId + " am not a leader");
         }
-        pendingTargetsResponses.put(targer, response.hasOkMessage());
     }
 
     class ElectionImpl extends LeaderElectionGrpc.LeaderElectionImplBase {
@@ -153,10 +180,12 @@ public class NodeServer implements NodeClient.NodeClientListener {
                     if (request.getServerId() > currentServerId) {
                         ElectionResponse response = ElectionResponse.newBuilder().build();
                         responseObserver.onNext(response);
+                        responseObserver.onCompleted();
                         return;
                     }
                     ElectionResponse response = ElectionResponse.newBuilder().setOkMessage(true).build();
                     responseObserver.onNext(response);
+                    responseObserver.onCompleted();
                 };
                 ScheduledThreadPoolExecutor scheduler = new ScheduledThreadPoolExecutor(1);
                 scheduler.schedule(runnable, 0, TimeUnit.SECONDS);
@@ -166,9 +195,10 @@ public class NodeServer implements NodeClient.NodeClientListener {
         }
 
         @Override
-        public void leaderHealthCheck(LeaderHelthCheckInfo request, StreamObserver<Empty> responseObserver) {
+        public void leaderHealthCheck(LeaderHealthCheckInfo request, StreamObserver<Empty> responseObserver) {
             leaderTarget = request.getTarget();
-            period++;
+            logger.info("Long live leader " + leaderTarget);
+            period = 5;
         }
     }
 }

@@ -5,9 +5,7 @@ import io.grpc.StatusRuntimeException;
 import io.grpc.examples.helloworld.GreeterGrpc;
 import io.grpc.examples.helloworld.HelloReply;
 import io.grpc.examples.helloworld.HelloRequest;
-import io.grpc.unipi.election.ElectionRequest;
-import io.grpc.unipi.election.ElectionResponse;
-import io.grpc.unipi.election.LeaderElectionGrpc;
+import io.grpc.unipi.election.*;
 
 import java.lang.ref.WeakReference;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
@@ -17,7 +15,7 @@ import java.util.logging.Logger;
 
 public class NodeClient {
 
-    private static final Logger logger = Logger.getLogger(HelloWorldClient.class.getName());
+    private static final Logger logger = Logger.getLogger(NodeClient.class.getName());
     private final LeaderElectionGrpc.LeaderElectionBlockingStub blockingStub;
     private String target;
     private WeakReference<NodeClientListener> mListener;
@@ -39,7 +37,24 @@ public class NodeClient {
                 ElectionRequest request = ElectionRequest.newBuilder().setServerId(id).build();
                 ElectionResponse response = blockingStub.election(request);
                 if (mListener.get() != null) mListener.get().receveidResponseFrom(target, response);
-                logger.info("Greeting tagret" + target + " : " + response.hasOkMessage());
+                logger.info("Response tagret" + target + " : " + response.hasOkMessage());
+            };
+            ScheduledThreadPoolExecutor scheduler = new ScheduledThreadPoolExecutor(1);
+            scheduler.schedule(runnable, 0, TimeUnit.SECONDS);
+
+        } catch (StatusRuntimeException e) {
+            logger.log(Level.WARNING, "RPC failed: {0}", e.getStatus());
+            return;
+        }
+    }
+
+    public void leaderHealthTrigger(String target) {
+        try {
+            Runnable runnable = () -> {
+                LeaderHealthCheckInfo request = LeaderHealthCheckInfo.newBuilder().setTarget(target).build();
+                Empty response = blockingStub.leaderHealthCheck(request);
+//                if (mListener.get() != null) mListener.get().receveidResponseFrom(target, response);
+//                logger.info("Response tagret" + target + " : " + response.hasOkMessage());
             };
             ScheduledThreadPoolExecutor scheduler = new ScheduledThreadPoolExecutor(1);
             scheduler.schedule(runnable, 0, TimeUnit.SECONDS);
