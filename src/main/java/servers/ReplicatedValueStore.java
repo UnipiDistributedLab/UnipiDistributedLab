@@ -9,6 +9,7 @@ import io.grpc.stub.StreamObserver;
 import java.io.IOException;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
@@ -24,6 +25,8 @@ public class ReplicatedValueStore {
     private Map<Integer, String> storage = new TreeMap<>();
     private ScheduledThreadPoolExecutor carrierThread = new ScheduledThreadPoolExecutor(1);
     private Runnable periodicWork;
+    private ScheduledFuture periodicScheduler;
+    private Integer period = 10;
 
     private void start(int port) throws IOException {
         server = ServerBuilder.forPort(port)
@@ -54,10 +57,12 @@ public class ReplicatedValueStore {
                         blockingStub.updateSecondary(request);
                     } catch (Exception e) {
                         System.out.println(e.getMessage());
+                        periodicScheduler.notify();
+                        carrierThread.scheduleAtFixedRate(periodicWork, 2, period, TimeUnit.SECONDS);
                     }
                 }
             };
-            carrierThread.scheduleAtFixedRate(periodicWork, 2, 10, TimeUnit.SECONDS);
+            carrierThread.scheduleAtFixedRate(periodicWork, 2, period, TimeUnit.SECONDS);
         }
 
         Runtime.getRuntime().addShutdownHook(new Thread() {
