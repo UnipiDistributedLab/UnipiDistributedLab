@@ -1,4 +1,4 @@
-syntax="proto3";
+syntax = "proto3";
 option java_multiple_files = true;
 option java_package = "io.grpc.unipi.election";
 option java_outer_classname = "ApiProto";
@@ -7,20 +7,25 @@ package org.example.distributed;
 
 
 message ElectionRequest{
-        int32 serverId = 1;
+  int32 serverId = 1;
 }
 
 message ElectionResponse{
-        optional bool okMessage = 1;
+  optional bool okMessage = 1;
 }
 
 message LeaderHealthCheckInfo {
-      string target = 1;
+  string target = 1;
+}
+
+message LeaderKillRequest {
+  int32 leaderId = 1;
 }
 
 message Empty {}
 
 service LeaderElection{
-        rpc election(ElectionRequest)returns(ElectionResponse);
-        rpc leaderHealthCheck(LeaderHealthCheckInfo)returns(Empty);
+  rpc election(ElectionRequest)returns(ElectionResponse);
+  rpc leaderHealthCheck(LeaderHealthCheckInfo)returns(Empty);
+  rpc leaderKill(LeaderKillRequest)returns(Empty);
 }

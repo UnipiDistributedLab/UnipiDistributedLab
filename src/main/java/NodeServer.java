@@ -31,6 +31,7 @@ public class NodeServer implements NodeClient.NodeClientListener {
     private final int currentServerId;
     private final int leaderHealthCheckSend = 2;
     private final int electionTerminatePeriod = 15;
+    ScheduledThreadPoolExecutor leadreHealthCheckThread = new ScheduledThreadPoolExecutor(1);
     private static final Logger logger = Logger.getLogger(NodeServer.class.getName());
     private final Integer defaultPort = 50051;
     //HashMap boolean means that one server send OK and has bigger id
@@ -114,7 +115,6 @@ public class NodeServer implements NodeClient.NodeClientListener {
             NodeClient client = new NodeClient(target, this);
             targetsClientsMap.put(target, client);
         }
-        ScheduledThreadPoolExecutor carrierThread = new ScheduledThreadPoolExecutor(1);
         Runnable periodicWork = () -> {
             Integer port = defaultPort + currentServerId;
             String leaderTarget = "localhost:" + port;
@@ -124,12 +124,13 @@ public class NodeServer implements NodeClient.NodeClientListener {
                 client.leaderHealthTrigger(leaderTarget);
             }
         };
-        carrierThread.scheduleAtFixedRate(periodicWork, 0, leaderHealthCheckSend, SECONDS);
+        leadreHealthCheckThread.scheduleAtFixedRate(periodicWork, 0, leaderHealthCheckSend, SECONDS);
     }
 
     private void stop() throws InterruptedException {
         if (server != null) {
-            server.shutdown().awaitTermination(30, SECONDS);
+            leadreHealthCheckThread.shutdownNow();
+            server.shutdown();
         }
     }
 
@@ -199,6 +200,16 @@ public class NodeServer implements NodeClient.NodeClientListener {
             leaderTarget = request.getTarget();
             logger.info("Long live leader " + leaderTarget);
             period = 5;
+        }
+
+        @Override
+        public void leaderKill(LeaderKillRequest request, StreamObserver<Empty> responseObserver) {
+            responseObserver.onCompleted();
+            try {
+                if (request.getLeaderId() == currentServerId) stop();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
         }
     }
 }
