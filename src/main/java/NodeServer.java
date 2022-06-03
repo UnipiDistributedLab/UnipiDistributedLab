@@ -3,13 +3,9 @@ import io.grpc.Server;
 import io.grpc.ServerBuilder;
 import io.grpc.stub.StreamObserver;
 import io.grpc.unipi.election.*;
-import org.checkerframework.checker.units.qual.A;
-import org.w3c.dom.Node;
 
-import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.*;
-import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
@@ -27,9 +23,9 @@ public class NodeServer implements NodeClient.NodeClientListener {
     private NodeStatus status = NodeStatus.NODE;
     private String leaderTarget;
     private boolean isUnderElection = false;
-    private Integer period = 5;
+    private Integer leaderLiveCountDownPeriod = 5;
     private final int currentServerId;
-    private final int leaderHealthCheckSend = 2;
+    private final int leaderHealthCheckSendPeriod = 2;
     private final int electionTerminatePeriod = 15;
     ScheduledThreadPoolExecutor leadreHealthCheckThread = new ScheduledThreadPoolExecutor(1);
     private static final Logger logger = Logger.getLogger(NodeServer.class.getName());
@@ -71,9 +67,8 @@ public class NodeServer implements NodeClient.NodeClientListener {
     private void startPeriodicCheck() {
         if (status == NodeStatus.LEADER) return;
         ScheduledThreadPoolExecutor carrierThread = new ScheduledThreadPoolExecutor(1);
-        Runnable periodicWork;
-        periodicWork = () -> {
-            if (period == 0) {
+        Runnable periodicWork = () -> {
+            if (leaderLiveCountDownPeriod == 0) {
                 if (isUnderElection) {
                     return;
                 }
@@ -82,8 +77,8 @@ public class NodeServer implements NodeClient.NodeClientListener {
                 electionTimeOut();
                 return;
             }
-            System.out.println(period);
-            period--;
+            System.out.println(leaderLiveCountDownPeriod);
+            leaderLiveCountDownPeriod--;
         };
         carrierThread.scheduleAtFixedRate(periodicWork, 0, 1, SECONDS);
 //        carrierThread.scheduleAtFixedRate(periodicWork, 2, period, TimeUnit.SECONDS);
@@ -94,7 +89,7 @@ public class NodeServer implements NodeClient.NodeClientListener {
         Runnable periodicWork;
         periodicWork = () -> {
             isUnderElection = false;
-            this.period = 5;
+            this.leaderLiveCountDownPeriod = 5;
             if (status == NodeStatus.LEADER) addLeaderHealthCheck();
         };
         carrierThread.schedule(periodicWork, electionTerminatePeriod, TimeUnit.SECONDS);
@@ -119,13 +114,14 @@ public class NodeServer implements NodeClient.NodeClientListener {
                 client.leaderHealthTrigger(leaderTarget);
             }
         };
-        leadreHealthCheckThread.scheduleAtFixedRate(periodicWork, 0, leaderHealthCheckSend, SECONDS);
+        leadreHealthCheckThread.scheduleAtFixedRate(periodicWork, 0, leaderHealthCheckSendPeriod, SECONDS);
     }
 
     private void stop() throws InterruptedException {
         if (server != null) {
+            targetsClientsMap.clear();
             leadreHealthCheckThread.shutdownNow();
-            server.shutdown();
+            server.shutdownNow();
         }
     }
 
@@ -193,8 +189,8 @@ public class NodeServer implements NodeClient.NodeClientListener {
         @Override
         public void leaderHealthCheck(LeaderHealthCheckInfo request, StreamObserver<Empty> responseObserver) {
             leaderTarget = request.getTarget();
-            logger.info("Long live leader " + leaderTarget);
-            period = 5;
+            logger.info("Long live the leader " + leaderTarget);
+            leaderLiveCountDownPeriod = 5;
         }
 
         @Override

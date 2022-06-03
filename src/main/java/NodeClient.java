@@ -53,8 +53,6 @@ public class NodeClient {
             Runnable runnable = () -> {
                 LeaderHealthCheckInfo request = LeaderHealthCheckInfo.newBuilder().setTarget(target).build();
                 Empty response = blockingStub.leaderHealthCheck(request);
-//                if (mListener.get() != null) mListener.get().receveidResponseFrom(target, response);
-//                logger.info("Response tagret" + target + " : " + response.hasOkMessage());
             };
             ScheduledThreadPoolExecutor scheduler = new ScheduledThreadPoolExecutor(1);
             scheduler.schedule(runnable, 0, TimeUnit.SECONDS);
