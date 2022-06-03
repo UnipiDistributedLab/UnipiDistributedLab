@@ -35,7 +35,7 @@ public class NodeServer implements NodeClient.NodeClientListener {
     private static final Logger logger = Logger.getLogger(NodeServer.class.getName());
     private final Integer defaultPort = 50051;
     //HashMap boolean means that one server send OK and has bigger id
-    private HashMap<String, Boolean> pendingTargetsResponses = new HashMap<>();
+//    private HashMap<String, Boolean> pendingTargetsResponses = new HashMap<>();
 
     private Server server;
 
@@ -93,10 +93,6 @@ public class NodeServer implements NodeClient.NodeClientListener {
         ScheduledThreadPoolExecutor carrierThread = new ScheduledThreadPoolExecutor(1);
         Runnable periodicWork;
         periodicWork = () -> {
-            // pendingTargetsResponses.isEmpty() -> it's the higher id node so has no pending
-            status = pendingTargetsResponses.containsValue(true) ? NodeStatus.NODE : NodeStatus.LEADER;
-            status = pendingTargetsResponses.isEmpty() ? NodeStatus.LEADER : status;
-            pendingTargetsResponses.clear();
             isUnderElection = false;
             this.period = 5;
             if (status == NodeStatus.LEADER) addLeaderHealthCheck();
@@ -120,7 +116,6 @@ public class NodeServer implements NodeClient.NodeClientListener {
             String leaderTarget = "localhost:" + port;
             for (String target : targets) {
                 NodeClient client = targetsClientsMap.get(target);
-                pendingTargetsResponses.put(target, false);
                 client.leaderHealthTrigger(leaderTarget);
             }
         };
@@ -147,9 +142,9 @@ public class NodeServer implements NodeClient.NodeClientListener {
 
     private void startElection() {
         isUnderElection = true;
+        status = NodeStatus.LEADER;
         for (String target : targets) {
             NodeClient client = targetsClientsMap.get(target);
-            pendingTargetsResponses.put(target, false);
             client.electionTrigger(currentServerId);
         }
     }
@@ -166,9 +161,9 @@ public class NodeServer implements NodeClient.NodeClientListener {
     @Override
     public void receveidResponseFrom(String targer, ElectionResponse response) {
         logger.info("i " + currentServerId + " received response from " + targer);
-        pendingTargetsResponses.put(targer, response.hasOkMessage());
         if (response.hasOkMessage()) {
             logger.info("i " + currentServerId + " am not a leader");
+            status = NodeStatus.NODE;
         }
     }
 
