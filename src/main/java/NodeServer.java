@@ -118,11 +118,10 @@ public class NodeServer implements NodeClient.NodeClientListener {
     }
 
     private void stop() throws InterruptedException {
-        if (server != null) {
-            targetsClientsMap.clear();
-            leadreHealthCheckThread.shutdownNow();
-            server.shutdownNow();
-        }
+        if (server == null) return;
+        targetsClientsMap.clear();
+        leadreHealthCheckThread.shutdownNow();
+        server.shutdownNow();
     }
 
     private void initElectionClient(Integer currentServerId) {
