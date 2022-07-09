@@ -8,14 +8,14 @@ public interface LeaderHealthCheckInfoOrBuilder extends
     com.google.protobuf.MessageOrBuilder {
 
   /**
-   * <code>string target = 1;</code>
-   * @return The target.
+   * <code>int32 port = 1;</code>
+   * @return The port.
    */
-  java.lang.String getTarget();
+  int getPort();
+
   /**
-   * <code>string target = 1;</code>
-   * @return The bytes for target.
+   * <code>int32 id = 2;</code>
+   * @return The id.
    */
-  com.google.protobuf.ByteString
-      getTargetBytes();
+  int getId();
 }

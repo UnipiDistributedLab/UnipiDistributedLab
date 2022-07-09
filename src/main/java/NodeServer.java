@@ -17,49 +17,43 @@ enum NodeStatus {
 }
 
 public class NodeServer implements NodeClient.NodeClientListener {
-    public static List<Integer> serversIds = Arrays.asList(0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
-    private ArrayList<String> targets = new ArrayList<>();
-    private HashMap<String, NodeClient> targetsClientsMap = new HashMap();
+    private final ArrayList<NodeClient> targetsClient = new ArrayList<>();
     private NodeStatus status = NodeStatus.NODE;
-    private String leaderTarget;
+    private ServerData leaderTarget;
     private boolean isUnderElection = false;
-    private Integer leaderLiveCountDownPeriod = 5;
-    private final int currentServerId;
+    private int leaderLiveCountDownPeriod = 5;
     private final int leaderHealthCheckSendPeriod = 2;
-    private final int electionTerminatePeriod = 15;
+    private final int electionTerminatePeriod = 5;
     ScheduledThreadPoolExecutor leadreHealthCheckThread = new ScheduledThreadPoolExecutor(1);
     private static final Logger logger = Logger.getLogger(NodeServer.class.getName());
-    private final Integer defaultPort = 50051;
-    //HashMap boolean means that one server send OK and has bigger id
-//    private HashMap<String, Boolean> pendingTargetsResponses = new HashMap<>();
+    private final ServerData thisServerData;
+    private final ArrayList<ServerData> allServersData;
+    private final String serverIP = "localhost";
 
     private Server server;
 
-    public NodeServer(Integer id) {
-        this.currentServerId = id;
-        initElectionClient(id);
+    public NodeServer(ServerData serverData, ArrayList<ServerData> allServersData) {
+        this.thisServerData = serverData;
+        this.allServersData = allServersData;
+        initElectionClient(thisServerData, allServersData);
     }
 
     public Server start() throws IOException {
-        int port = defaultPort + currentServerId;
-        server = ServerBuilder.forPort(port)
+        server = ServerBuilder.forPort(thisServerData.getPort())
                 .addService(new ElectionImpl())
                 .build()
                 .start();
-        logger.info("Server started, listening on " + port);
-        Runtime.getRuntime().addShutdownHook(new Thread() {
-            @Override
-            public void run() {
-                // Use stderr here since the logger may have been reset by its JVM shutdown hook.
-                System.err.println("*** shutting down gRPC server since JVM is shutting down");
-                try {
-                    NodeServer.this.stop();
-                } catch (InterruptedException e) {
-                    e.printStackTrace(System.err);
-                }
-                System.err.println("*** server shut down");
+        logger.info("Server started, listening on " + thisServerData.getPort());
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            // Use stderr here since the logger may have been reset by its JVM shutdown hook.
+            System.err.println("*** shutting down gRPC server since JVM is shutting down");
+            try {
+                NodeServer.this.stop();
+            } catch (InterruptedException e) {
+                e.printStackTrace(System.err);
             }
-        });
+            System.err.println("*** server shut down");
+        }));
         startPeriodicCheck();
         return server;
     }
@@ -81,7 +75,6 @@ public class NodeServer implements NodeClient.NodeClientListener {
             leaderLiveCountDownPeriod--;
         };
         carrierThread.scheduleAtFixedRate(periodicWork, 0, 1, SECONDS);
-//        carrierThread.scheduleAtFixedRate(periodicWork, 2, period, TimeUnit.SECONDS);
     }
 
     private void electionTimeOut() {
@@ -96,22 +89,16 @@ public class NodeServer implements NodeClient.NodeClientListener {
     }
 
     private void addLeaderHealthCheck() {
-        targets.clear();
-        targetsClientsMap.clear();
-        for (Integer serverId : serversIds) {
-            if (serverId == currentServerId) continue;
-            Integer port = defaultPort + serverId;
-            String target = "localhost:" + port;
-            targets.add(target);
+        targetsClient.clear();
+        for (ServerData serverInstData : allServersData) {
+            if (serverInstData.getPort() == thisServerData.getPort()) continue;
+            String target =  serverIP + ":" + serverInstData.getPort();
             NodeClient client = new NodeClient(target, this);
-            targetsClientsMap.put(target, client);
+            targetsClient.add(client);
         }
         Runnable periodicWork = () -> {
-            Integer port = defaultPort + currentServerId;
-            String leaderTarget = "localhost:" + port;
-            for (String target : targets) {
-                NodeClient client = targetsClientsMap.get(target);
-                client.leaderHealthTrigger(leaderTarget);
+            for (NodeClient nodeClient : targetsClient) {
+                nodeClient.leaderHealthTrigger(thisServerData);
             }
         };
         leadreHealthCheckThread.scheduleAtFixedRate(periodicWork, 0, leaderHealthCheckSendPeriod, SECONDS);
@@ -119,28 +106,25 @@ public class NodeServer implements NodeClient.NodeClientListener {
 
     private void stop() throws InterruptedException {
         if (server == null) return;
-        targetsClientsMap.clear();
+        targetsClient.clear();
         leadreHealthCheckThread.shutdownNow();
         server.shutdownNow();
     }
 
-    private void initElectionClient(Integer currentServerId) {
-        for (Integer serverId : serversIds) {
-            if (serverId <= currentServerId) continue;
-            Integer port = defaultPort + serverId;
-            String target = "localhost:" + port;
-            targets.add(target);
+    private void initElectionClient(ServerData thisServerData, ArrayList<ServerData> allServersData) {
+        for (ServerData serverInstData : allServersData) {
+            if (serverInstData.getId() <= thisServerData.getId()) continue;
+            String target = serverIP + ":" + serverInstData.getPort();
             NodeClient client = new NodeClient(target, this);
-            targetsClientsMap.put(target, client);
+            targetsClient.add(client);
         }
     }
 
     private void startElection() {
         isUnderElection = true;
         status = NodeStatus.LEADER;
-        for (String target : targets) {
-            NodeClient client = targetsClientsMap.get(target);
-            client.electionTrigger(currentServerId);
+        for (NodeClient client : targetsClient) {
+            client.electionTrigger(thisServerData.getId());
         }
     }
 
@@ -155,9 +139,9 @@ public class NodeServer implements NodeClient.NodeClientListener {
 
     @Override
     public void receveidResponseFrom(String targer, ElectionResponse response) {
-        logger.info("i " + currentServerId + " received response from " + targer);
+        logger.info("i " + thisServerData.getId() + " received response from " + targer);
         if (response.hasOkMessage()) {
-            logger.info("i " + currentServerId + " am not a leader");
+            logger.info("i " + thisServerData.getId() + " am not a leader");
             status = NodeStatus.NODE;
         }
     }
@@ -168,7 +152,7 @@ public class NodeServer implements NodeClient.NodeClientListener {
         public void election(ElectionRequest request, StreamObserver<ElectionResponse> responseObserver) {
             try {
                 Runnable runnable = () -> {
-                    if (request.getServerId() > currentServerId) {
+                    if (request.getServerId() > thisServerData.getId()) {
                         ElectionResponse response = ElectionResponse.newBuilder().build();
                         responseObserver.onNext(response);
                         responseObserver.onCompleted();
@@ -187,8 +171,8 @@ public class NodeServer implements NodeClient.NodeClientListener {
 
         @Override
         public void leaderHealthCheck(LeaderHealthCheckInfo request, StreamObserver<Empty> responseObserver) {
-            leaderTarget = request.getTarget();
-            logger.info("Long live the leader " + leaderTarget);
+            leaderTarget = new ServerData(request.getPort(), request.getId());
+            logger.info("The leader id is: " + leaderTarget.getId());
             leaderLiveCountDownPeriod = 5;
         }
 
@@ -196,7 +180,7 @@ public class NodeServer implements NodeClient.NodeClientListener {
         public void leaderKill(LeaderKillRequest request, StreamObserver<Empty> responseObserver) {
             responseObserver.onCompleted();
             try {
-                if (request.getLeaderId() == currentServerId) stop();
+                if (request.getLeaderId() == thisServerData.getId()) stop();
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }

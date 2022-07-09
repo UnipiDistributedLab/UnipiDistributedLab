@@ -1,12 +1,7 @@
-import io.grpc.Channel;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.StatusRuntimeException;
-import io.grpc.examples.helloworld.GreeterGrpc;
-import io.grpc.examples.helloworld.HelloReply;
-import io.grpc.examples.helloworld.HelloRequest;
 import io.grpc.unipi.election.*;
-
 import java.lang.ref.WeakReference;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -48,11 +43,15 @@ public class NodeClient {
         }
     }
 
-    public void leaderHealthTrigger(String target) {
+    public void leaderHealthTrigger(ServerData data) {
         try {
             Runnable runnable = () -> {
-                LeaderHealthCheckInfo request = LeaderHealthCheckInfo.newBuilder().setTarget(target).build();
-                Empty response = blockingStub.leaderHealthCheck(request);
+                LeaderHealthCheckInfo request = LeaderHealthCheckInfo
+                        .newBuilder()
+                        .setPort(data.getPort())
+                        .setId(data.getId())
+                        .build();
+                Empty _ = blockingStub.leaderHealthCheck(request);
             };
             ScheduledThreadPoolExecutor scheduler = new ScheduledThreadPoolExecutor(1);
             scheduler.schedule(runnable, 0, TimeUnit.SECONDS);

@@ -16,7 +16,6 @@ private static final long serialVersionUID = 0L;
     super(builder);
   }
   private LeaderHealthCheckInfo() {
-    target_ = "";
   }
 
   @java.lang.Override
@@ -49,10 +48,14 @@ private static final long serialVersionUID = 0L;
           case 0:
             done = true;
             break;
-          case 10: {
-            java.lang.String s = input.readStringRequireUtf8();
+          case 8: {
 
-            target_ = s;
+            port_ = input.readInt32();
+            break;
+          }
+          case 16: {
+
+            id_ = input.readInt32();
             break;
           }
           default: {
@@ -87,42 +90,26 @@ private static final long serialVersionUID = 0L;
             io.grpc.unipi.election.LeaderHealthCheckInfo.class, io.grpc.unipi.election.LeaderHealthCheckInfo.Builder.class);
   }
 
-  public static final int TARGET_FIELD_NUMBER = 1;
-  private volatile java.lang.Object target_;
+  public static final int PORT_FIELD_NUMBER = 1;
+  private int port_;
   /**
-   * <code>string target = 1;</code>
-   * @return The target.
+   * <code>int32 port = 1;</code>
+   * @return The port.
    */
   @java.lang.Override
-  public java.lang.String getTarget() {
-    java.lang.Object ref = target_;
-    if (ref instanceof java.lang.String) {
-      return (java.lang.String) ref;
-    } else {
-      com.google.protobuf.ByteString bs = 
-          (com.google.protobuf.ByteString) ref;
-      java.lang.String s = bs.toStringUtf8();
-      target_ = s;
-      return s;
-    }
+  public int getPort() {
+    return port_;
   }
+
+  public static final int ID_FIELD_NUMBER = 2;
+  private int id_;
   /**
-   * <code>string target = 1;</code>
-   * @return The bytes for target.
+   * <code>int32 id = 2;</code>
+   * @return The id.
    */
   @java.lang.Override
-  public com.google.protobuf.ByteString
-      getTargetBytes() {
-    java.lang.Object ref = target_;
-    if (ref instanceof java.lang.String) {
-      com.google.protobuf.ByteString b = 
-          com.google.protobuf.ByteString.copyFromUtf8(
-              (java.lang.String) ref);
-      target_ = b;
-      return b;
-    } else {
-      return (com.google.protobuf.ByteString) ref;
-    }
+  public int getId() {
+    return id_;
   }
 
   private byte memoizedIsInitialized = -1;
@@ -139,8 +126,11 @@ private static final long serialVersionUID = 0L;
   @java.lang.Override
   public void writeTo(com.google.protobuf.CodedOutputStream output)
                       throws java.io.IOException {
-    if (!com.google.protobuf.GeneratedMessageV3.isStringEmpty(target_)) {
-      com.google.protobuf.GeneratedMessageV3.writeString(output, 1, target_);
+    if (port_ != 0) {
+      output.writeInt32(1, port_);
+    }
+    if (id_ != 0) {
+      output.writeInt32(2, id_);
     }
     unknownFields.writeTo(output);
   }
@@ -151,8 +141,13 @@ private static final long serialVersionUID = 0L;
     if (size != -1) return size;
 
     size = 0;
-    if (!com.google.protobuf.GeneratedMessageV3.isStringEmpty(target_)) {
-      size += com.google.protobuf.GeneratedMessageV3.computeStringSize(1, target_);
+    if (port_ != 0) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeInt32Size(1, port_);
+    }
+    if (id_ != 0) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeInt32Size(2, id_);
     }
     size += unknownFields.getSerializedSize();
     memoizedSize = size;
@@ -169,8 +164,10 @@ private static final long serialVersionUID = 0L;
     }
     io.grpc.unipi.election.LeaderHealthCheckInfo other = (io.grpc.unipi.election.LeaderHealthCheckInfo) obj;
 
-    if (!getTarget()
-        .equals(other.getTarget())) return false;
+    if (getPort()
+        != other.getPort()) return false;
+    if (getId()
+        != other.getId()) return false;
     if (!unknownFields.equals(other.unknownFields)) return false;
     return true;
   }
@@ -182,8 +179,10 @@ private static final long serialVersionUID = 0L;
     }
     int hash = 41;
     hash = (19 * hash) + getDescriptor().hashCode();
-    hash = (37 * hash) + TARGET_FIELD_NUMBER;
-    hash = (53 * hash) + getTarget().hashCode();
+    hash = (37 * hash) + PORT_FIELD_NUMBER;
+    hash = (53 * hash) + getPort();
+    hash = (37 * hash) + ID_FIELD_NUMBER;
+    hash = (53 * hash) + getId();
     hash = (29 * hash) + unknownFields.hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -317,7 +316,9 @@ private static final long serialVersionUID = 0L;
     @java.lang.Override
     public Builder clear() {
       super.clear();
-      target_ = "";
+      port_ = 0;
+
+      id_ = 0;
 
       return this;
     }
@@ -345,7 +346,8 @@ private static final long serialVersionUID = 0L;
     @java.lang.Override
     public io.grpc.unipi.election.LeaderHealthCheckInfo buildPartial() {
       io.grpc.unipi.election.LeaderHealthCheckInfo result = new io.grpc.unipi.election.LeaderHealthCheckInfo(this);
-      result.target_ = target_;
+      result.port_ = port_;
+      result.id_ = id_;
       onBuilt();
       return result;
     }
@@ -394,9 +396,11 @@ private static final long serialVersionUID = 0L;
 
     public Builder mergeFrom(io.grpc.unipi.election.LeaderHealthCheckInfo other) {
       if (other == io.grpc.unipi.election.LeaderHealthCheckInfo.getDefaultInstance()) return this;
-      if (!other.getTarget().isEmpty()) {
-        target_ = other.target_;
-        onChanged();
+      if (other.getPort() != 0) {
+        setPort(other.getPort());
+      }
+      if (other.getId() != 0) {
+        setId(other.getId());
       }
       this.mergeUnknownFields(other.unknownFields);
       onChanged();
@@ -427,78 +431,64 @@ private static final long serialVersionUID = 0L;
       return this;
     }
 
-    private java.lang.Object target_ = "";
+    private int port_ ;
     /**
-     * <code>string target = 1;</code>
-     * @return The target.
+     * <code>int32 port = 1;</code>
+     * @return The port.
      */
-    public java.lang.String getTarget() {
-      java.lang.Object ref = target_;
-      if (!(ref instanceof java.lang.String)) {
-        com.google.protobuf.ByteString bs =
-            (com.google.protobuf.ByteString) ref;
-        java.lang.String s = bs.toStringUtf8();
-        target_ = s;
-        return s;
-      } else {
-        return (java.lang.String) ref;
-      }
+    @java.lang.Override
+    public int getPort() {
+      return port_;
     }
     /**
-     * <code>string target = 1;</code>
-     * @return The bytes for target.
-     */
-    public com.google.protobuf.ByteString
-        getTargetBytes() {
-      java.lang.Object ref = target_;
-      if (ref instanceof String) {
-        com.google.protobuf.ByteString b = 
-            com.google.protobuf.ByteString.copyFromUtf8(
-                (java.lang.String) ref);
-        target_ = b;
-        return b;
-      } else {
-        return (com.google.protobuf.ByteString) ref;
-      }
-    }
-    /**
-     * <code>string target = 1;</code>
-     * @param value The target to set.
+     * <code>int32 port = 1;</code>
+     * @param value The port to set.
      * @return This builder for chaining.
      */
-    public Builder setTarget(
-        java.lang.String value) {
-      if (value == null) {
-    throw new NullPointerException();
-  }
-  
-      target_ = value;
+    public Builder setPort(int value) {
+      
+      port_ = value;
       onChanged();
       return this;
     }
     /**
-     * <code>string target = 1;</code>
+     * <code>int32 port = 1;</code>
      * @return This builder for chaining.
      */
-    public Builder clearTarget() {
+    public Builder clearPort() {
       
-      target_ = getDefaultInstance().getTarget();
+      port_ = 0;
+      onChanged();
+      return this;
+    }
+
+    private int id_ ;
+    /**
+     * <code>int32 id = 2;</code>
+     * @return The id.
+     */
+    @java.lang.Override
+    public int getId() {
+      return id_;
+    }
+    /**
+     * <code>int32 id = 2;</code>
+     * @param value The id to set.
+     * @return This builder for chaining.
+     */
+    public Builder setId(int value) {
+      
+      id_ = value;
       onChanged();
       return this;
     }
     /**
-     * <code>string target = 1;</code>
-     * @param value The bytes for target to set.
+     * <code>int32 id = 2;</code>
      * @return This builder for chaining.
      */
-    public Builder setTargetBytes(
-        com.google.protobuf.ByteString value) {
-      if (value == null) {
-    throw new NullPointerException();
-  }
-  checkByteStringIsUtf8(value);
+    public Builder clearId() {
       
-      target_ = value;
+      id_ = 0;
       onChanged();
       return this;
     }
