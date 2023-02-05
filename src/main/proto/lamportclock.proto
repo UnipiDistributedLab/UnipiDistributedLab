@@ -30,24 +30,23 @@ service ValueStore {
 }
 
 message WriteRequest {
-  int32 value = 1;
+  string value = 1;
   int32 counter = 2;
   string timestamp = 3;
 }
 
 message WriteReply {
-  int32 value = 1;
+  string value = 1;
   int32 counter = 2;
   string timestamp = 3;
 }
 
 message ReadRequest {
-  int32 value = 1;
-  int32 counter = 2;
+  int32 counter = 1;
 }
 
 message ReadReply {
-  int32 value = 1;
+  string value = 1;
   int32 counter = 2;
   string timestamp = 3;
 }

@@ -17,9 +17,6 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Logger;
 
-enum StorageType {
-    READ, WRITE
-}
 public class ValueStorage {
 
     private static final Logger logger = Logger.getLogger(ValueStorage.class.getName());
@@ -94,13 +91,11 @@ public class ValueStorage {
             periodicWork = () -> {
                 UpdateRequest request = null;
                 try {
-                    lock.lock();
                     request = UpdateRequest
                             .newBuilder()
                             .putAllMap(storage)
                             .build();
                 } finally {
-                    lock.unlock();
                     if (storage.isEmpty()) return;
                     try {
                         blockingStub.updateSecondary(request);
@@ -184,7 +179,7 @@ public class ValueStorage {
                 String timeStamp = splits[1];
                 ReadReply reply = ReadReply
                         .newBuilder()
-                        .setValue(Integer.parseInt(value))
+                        .setValue(value)
                         .setTimestamp(timeStamp)
                         .setCounter(clock.getClock())
                         .build();
