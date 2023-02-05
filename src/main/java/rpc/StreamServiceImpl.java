@@ -14,16 +14,20 @@ public class StreamServiceImpl extends StockQuoteProviderGrpc.StockQuoteProvider
     @Override
     public void serverSideStreamingGetListStockQuotes(Stock request, StreamObserver<StockQuote> responseObserver) {
         observers.add(responseObserver);
-        for (int i = 1; i <= 5; i++) {
-            StockQuote stockQuote = StockQuote.newBuilder()
-                    .setPrice(100 + i)
-                    .setOfferNumber(i)
-                    .setDescription("Price for stock:" + request.getTickerSymbol())
-                    .setTickerSymbol(request.getTickerSymbol())
-                    .setCompanyName(request.getCompanyName())
-                    .build();
-            sendBroadCaste(stockQuote);
-        }
+        Runnable runnable = () -> {
+            for(int i=0; i<10; i++) {
+                StockQuote stockQuote = StockQuote.newBuilder()
+                        .setPrice(100 + i)
+                        .setOfferNumber(i)
+                        .setDescription("Price for stock:" + request.getTickerSymbol())
+                        .setTickerSymbol(request.getTickerSymbol())
+                        .setCompanyName(request.getCompanyName())
+                        .build();
+                sendBroadCaste(stockQuote);
+            }
+        };
+
+        Thread vThread = Thread.ofVirtual().start(runnable);
     }
 
     @Override
