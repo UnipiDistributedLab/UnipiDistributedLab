@@ -4,7 +4,7 @@ import com.google.gson.Gson;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.StatusRuntimeException;
 import io.grpc.examples.servers.LamportClock.*;
-import servers.ReplicatedValueStore;
+import servers.MainValueStore;
 import servers.StorageType;
 import servers.ValueStorage;
 import servers.rest.request.ReadValueResponse;
@@ -24,10 +24,15 @@ public class StoreValueController {
 
     private ValueStoreGrpc.ValueStoreBlockingStub writeBlockingStub;
     private ValueStoreGrpc.ValueStoreBlockingStub readBlockingStub;
-    private final Logger logger = Logger.getLogger(ReplicatedValueStore.class.getName());
+    private final Logger logger = Logger.getLogger(MainValueStore.class.getName());
     private static final Gson mGson = new Gson();
 
     public void startRouting() throws InterruptedException {
+        initRestInterface();
+        initRPC();
+    }
+
+    private void initRestInterface() {
         post("api/write", (req, res) -> {
             WriteValueRequest request = mGson.fromJson(req.body(), WriteValueRequest.class);
             if (request == null) return "Worng Request";
@@ -41,7 +46,9 @@ public class StoreValueController {
             ReadValueResponse response = new ReadValueResponse(read(clock));
             return mGson.toJson(response);
         });
+    }
 
+    private void initRPC() throws InterruptedException {
         writeBlockingStub = ValueStoreGrpc.newBlockingStub(
                 ManagedChannelBuilder.forTarget("localhost:50051")
                         .usePlaintext()
