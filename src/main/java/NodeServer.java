@@ -174,7 +174,7 @@ public class NodeServer implements NodeClient.NodeClientListener {
         @Override
         public void leaderHealthCheck(LeaderHealthCheckInfo request, StreamObserver<Empty> responseObserver) {
             leaderTarget = new ServerData(request.getPort(), request.getId(), request.getUrl());
-            logger.info("The leader id is: " + leaderTarget.getId());
+            logger.info("I am " + thisServerData.getUrl() + " The leader id is: " + leaderTarget.getId());
             leaderLiveCountDownPeriod = 5;
         }
 
