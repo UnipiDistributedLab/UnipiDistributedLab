@@ -50,6 +50,7 @@ public class NodeClient {
                         .newBuilder()
                         .setPort(data.getPort())
                         .setId(data.getId())
+                        .setUrl(data.getUrl())
                         .build();
                 Empty _ = blockingStub.leaderHealthCheck(request);
             };

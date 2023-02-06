@@ -17,6 +17,7 @@ message ElectionResponse{
 message LeaderHealthCheckInfo {
   int32 port = 1;
   int32 id = 2;
+  string url = 3;
 }
 
 message LeaderHealthCheckStream {
@@ -34,4 +35,5 @@ service LeaderElection{
   rpc election(ElectionRequest)returns(ElectionResponse);
   rpc leaderHealthCheck(LeaderHealthCheckInfo)returns(Empty);
   rpc leaderKill(LeaderKillRequest)returns(Empty);
+  rpc giveTheLeader(Empty)returns(LeaderHealthCheckInfo);
 }

@@ -1,6 +1,7 @@
 
 import io.grpc.Server;
 import io.grpc.ServerBuilder;
+import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
 import io.grpc.unipi.election.*;
 
@@ -28,7 +29,7 @@ public class NodeServer implements NodeClient.NodeClientListener {
     private static final Logger logger = Logger.getLogger(NodeServer.class.getName());
     private final ServerData thisServerData;
     private final ArrayList<ServerData> allServersData;
-    private final String serverIP = "localhost";
+    static final String serverIP = "localhost";
 
     private Server server;
 
@@ -122,6 +123,7 @@ public class NodeServer implements NodeClient.NodeClientListener {
 
     private void startElection() {
         isUnderElection = true;
+        leaderTarget = null;
         status = NodeStatus.LEADER;
         for (NodeClient client : targetsClient) {
             client.electionTrigger(thisServerData.getId());
@@ -171,7 +173,7 @@ public class NodeServer implements NodeClient.NodeClientListener {
 
         @Override
         public void leaderHealthCheck(LeaderHealthCheckInfo request, StreamObserver<Empty> responseObserver) {
-            leaderTarget = new ServerData(request.getPort(), request.getId());
+            leaderTarget = new ServerData(request.getPort(), request.getId(), request.getUrl());
             logger.info("The leader id is: " + leaderTarget.getId());
             leaderLiveCountDownPeriod = 5;
         }
@@ -184,6 +186,22 @@ public class NodeServer implements NodeClient.NodeClientListener {
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
+        }
+
+        @Override
+        public void giveTheLeader(Empty request, StreamObserver<LeaderHealthCheckInfo> responseObserver) {
+            if (leaderTarget == null) {
+                responseObserver.onError(Status.INTERNAL.withDescription("No leader election has been finisehd").asException());
+                return;
+            }
+            LeaderHealthCheckInfo response = LeaderHealthCheckInfo
+                    .newBuilder()
+                    .setPort(leaderTarget.getPort())
+                    .setId(leaderTarget.getId())
+                    .setUrl(leaderTarget.getUrl())
+                    .build();
+            responseObserver.onNext(response);
+            responseObserver.onCompleted();
         }
     }
 }
