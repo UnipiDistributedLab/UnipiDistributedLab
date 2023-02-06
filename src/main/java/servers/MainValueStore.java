@@ -1,14 +1,10 @@
 package servers;
 
-import jdk.jfr.internal.LogLevel;
 import servers.rest.StoreValueController;
 
 import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
-import static spark.Spark.get;
-import static spark.Spark.post;
 
 public class MainValueStore {
     //default Spark port is 4567

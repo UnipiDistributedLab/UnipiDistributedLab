@@ -5,6 +5,7 @@ import io.grpc.Server;
 import io.grpc.ServerBuilder;
 import io.grpc.examples.servers.LamportClock.*;
 import io.grpc.stub.StreamObserver;
+import utlis.AtomicStorage;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -23,8 +24,7 @@ public class ValueStorage {
     private Server server;
     private ValueStoreGrpc.ValueStoreBlockingStub blockingStub;
     private LamportClock clock;
-    private Lock lock = new ReentrantLock();
-    private Map<Integer, String> storage = new TreeMap<>();
+    private AtomicStorage atomicStorage = new AtomicStorage();
     private ScheduledThreadPoolExecutor carrierThread = new ScheduledThreadPoolExecutor(1);
     private Runnable periodicWork;
     private ScheduledFuture periodicScheduler;
@@ -93,10 +93,10 @@ public class ValueStorage {
                 try {
                     request = UpdateRequest
                             .newBuilder()
-                            .putAllMap(storage)
+                            .putAllMap(atomicStorage.getAll())
                             .build();
                 } finally {
-                    if (storage.isEmpty()) return;
+                    if (atomicStorage.isEmpty()) return;
                     try {
                         blockingStub.updateSecondary(request);
                     } catch (Exception e) {
@@ -115,12 +115,7 @@ public class ValueStorage {
         @Override
         public void write(WriteRequest req, StreamObserver<WriteReply> responseObserver) {
             clock.tick(req.getCounter());
-            try {
-                lock.lock();
-                storage.put(clock.getClock(), req.getValue() + ":" + req.getTimestamp());
-            } finally {
-                lock.unlock();
-            }
+            atomicStorage.put(clock.getClock(), req.getValue() + ":" + req.getTimestamp());
             WriteReply reply = WriteReply.newBuilder()
                     .setValue(req.getValue())
                     .setCounter(clock.getClock())
@@ -133,12 +128,7 @@ public class ValueStorage {
         @Override
         public void readAll(Empty req, StreamObserver<ReadAllReply> responseObserver) {
             String storageOutput = null;
-            try {
-                lock.lock();
-                storageOutput = storage.toString();
-            } finally {
-                lock.unlock();
-            }
+            storageOutput = atomicStorage.toString();
             ReadAllReply reply = ReadAllReply.newBuilder().setData(storageOutput).build();
             responseObserver.onNext(reply);
             responseObserver.onCompleted();
@@ -147,13 +137,7 @@ public class ValueStorage {
         @Override
         public void updateSecondary(UpdateRequest req, StreamObserver<UpdateReply> responseObserver) {
             Map<Integer, String> transmittedMap = req.getMapMap();
-            try {
-                lock.lock();
-                storage.clear();
-                storage.putAll(transmittedMap);
-            } finally {
-                lock.unlock();
-            }
+            atomicStorage.putAll(transmittedMap);
             UpdateReply reply = UpdateReply.newBuilder().setStatus(0).build();
             responseObserver.onNext(reply);
             responseObserver.onCompleted();
@@ -162,15 +146,12 @@ public class ValueStorage {
         @Override
         public void read(ReadRequest request, StreamObserver<ReadReply> responseObserver) {
             try {
-                lock.lock();
-                String storedValue = storage.get(request.getCounter());
+                String storedValue = atomicStorage.get(request.getCounter());
                 int syncAttemps = 0;
                 //here we achieve waiting for synchronization
                 while (storedValue == null) {
-                    lock.unlock();
                     Thread.sleep(100);
-                    lock.lock();
-                    storedValue = storage.get(request.getCounter());
+                    storedValue = atomicStorage.get(request.getCounter());
                     logger.info("Attemps no: " + syncAttemps);
                     syncAttemps += 1;
                 }
@@ -187,8 +168,6 @@ public class ValueStorage {
                 responseObserver.onCompleted();
             } catch (InterruptedException e) {
                 e.printStackTrace();
-            } finally {
-                lock.unlock();
             }
         }
     }

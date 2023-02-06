@@ -21,7 +21,6 @@ import static spark.Spark.post;
 
 public class StoreValueController {
 
-
     private ValueStoreGrpc.ValueStoreBlockingStub writeBlockingStub;
     private ValueStoreGrpc.ValueStoreBlockingStub readBlockingStub;
     private final Logger logger = Logger.getLogger(MainValueStore.class.getName());
