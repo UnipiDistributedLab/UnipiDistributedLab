@@ -19,6 +19,11 @@ message LeaderHealthCheckInfo {
   int32 id = 2;
 }
 
+message LeaderHealthCheckStream {
+  int32 port = 1;
+  int32 id = 2;
+}
+
 message LeaderKillRequest {
   int32 leaderId = 1;
 }
