@@ -28,14 +28,16 @@ public class NodeClient {
 
     public void electionTrigger(Integer id) {
         try {
+            ScheduledThreadPoolExecutor scheduler = new ScheduledThreadPoolExecutor(1);
             Runnable runnable = () -> {
                 ElectionRequest request = ElectionRequest.newBuilder().setServerId(id).build();
                 ElectionResponse response = blockingStub.election(request);
                 if (mListener.get() != null) mListener.get().receveidResponseFrom(target, response);
                 logger.info("Response tagret" + target + " : " + response.hasOkMessage());
+                scheduler.shutdownNow();
             };
-            ScheduledThreadPoolExecutor scheduler = new ScheduledThreadPoolExecutor(1);
             scheduler.schedule(runnable, 0, TimeUnit.SECONDS);
+//            Thread.ofVirtual().start(runnable);
 
         } catch (StatusRuntimeException e) {
             logger.log(Level.WARNING, "RPC failed: {0}", e.getStatus());
@@ -52,10 +54,10 @@ public class NodeClient {
                         .setId(data.getId())
                         .setUrl(data.getUrl())
                         .build();
-                Empty _ = blockingStub.leaderHealthCheck(request);
+                logger.log(Level.WARNING, "I am in leaderHealthTrigger for {0}", data.getUrl());
+                Empty resp = blockingStub.leaderHealthCheck(request);
             };
-            ScheduledThreadPoolExecutor scheduler = new ScheduledThreadPoolExecutor(1);
-            scheduler.schedule(runnable, 0, TimeUnit.SECONDS);
+            Thread.ofVirtual().start(runnable);
 
         } catch (StatusRuntimeException e) {
             logger.log(Level.WARNING, "RPC failed: {0}", e.getStatus());

@@ -9,8 +9,10 @@ import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 enum NodeStatus {
@@ -23,7 +25,7 @@ public class NodeServer implements NodeClient.NodeClientListener {
     private ServerData leaderTarget;
     private boolean isUnderElection = false;
     private int leaderLiveCountDownPeriod = 5;
-    private final int leaderHealthCheckSendPeriod = 2;
+    private final int leaderHealthCheckSendPeriod = 3000;
     private final int electionTerminatePeriod = 5;
     ScheduledThreadPoolExecutor leadreHealthCheckThread = new ScheduledThreadPoolExecutor(1);
     private static final Logger logger = Logger.getLogger(NodeServer.class.getName());
@@ -75,6 +77,7 @@ public class NodeServer implements NodeClient.NodeClientListener {
             System.out.println(leaderLiveCountDownPeriod);
             leaderLiveCountDownPeriod--;
         };
+        if (leaderLiveCountDownPeriod == 0) { return; }
         carrierThread.scheduleAtFixedRate(periodicWork, 0, 1, SECONDS);
     }
 
@@ -85,11 +88,14 @@ public class NodeServer implements NodeClient.NodeClientListener {
             isUnderElection = false;
             this.leaderLiveCountDownPeriod = 5;
             if (status == NodeStatus.LEADER) addLeaderHealthCheck();
+            carrierThread.shutdownNow();
         };
         carrierThread.schedule(periodicWork, electionTerminatePeriod, TimeUnit.SECONDS);
     }
 
     private void addLeaderHealthCheck() {
+        leadreHealthCheckThread.shutdownNow();
+        leadreHealthCheckThread = new ScheduledThreadPoolExecutor(1);
         targetsClient.clear();
         for (ServerData serverInstData : allServersData) {
             if (serverInstData.getPort() == thisServerData.getPort()) continue;
@@ -98,11 +104,12 @@ public class NodeServer implements NodeClient.NodeClientListener {
             targetsClient.add(client);
         }
         Runnable periodicWork = () -> {
+            logger.log(Level.WARNING, "I am in addLeaderHealthCheck");
             for (NodeClient nodeClient : targetsClient) {
                 nodeClient.leaderHealthTrigger(thisServerData);
             }
         };
-        leadreHealthCheckThread.scheduleAtFixedRate(periodicWork, 0, leaderHealthCheckSendPeriod, SECONDS);
+        leadreHealthCheckThread.scheduleAtFixedRate(periodicWork, 0, leaderHealthCheckSendPeriod, MILLISECONDS);
     }
 
     private void stop() throws InterruptedException {
@@ -153,18 +160,20 @@ public class NodeServer implements NodeClient.NodeClientListener {
         @Override
         public void election(ElectionRequest request, StreamObserver<ElectionResponse> responseObserver) {
             try {
+                ScheduledThreadPoolExecutor scheduler = new ScheduledThreadPoolExecutor(1);
+                ElectionResponse.Builder responseBuilder = ElectionResponse.newBuilder();
                 Runnable runnable = () -> {
                     if (request.getServerId() > thisServerData.getId()) {
-                        ElectionResponse response = ElectionResponse.newBuilder().build();
-                        responseObserver.onNext(response);
+                        responseObserver.onNext(responseBuilder.build());
                         responseObserver.onCompleted();
+                        scheduler.shutdownNow();
                         return;
                     }
-                    ElectionResponse response = ElectionResponse.newBuilder().setOkMessage(true).build();
+                    ElectionResponse response = responseBuilder.setOkMessage(true).build();
                     responseObserver.onNext(response);
                     responseObserver.onCompleted();
+                    scheduler.shutdownNow();
                 };
-                ScheduledThreadPoolExecutor scheduler = new ScheduledThreadPoolExecutor(1);
                 scheduler.schedule(runnable, 0, TimeUnit.SECONDS);
             } catch (Exception e) {
                 logger.info(e.getMessage());
@@ -176,10 +185,13 @@ public class NodeServer implements NodeClient.NodeClientListener {
             leaderTarget = new ServerData(request.getPort(), request.getId(), request.getUrl());
             logger.info("I am " + thisServerData.getUrl() + " The leader id is: " + leaderTarget.getId());
             leaderLiveCountDownPeriod = 5;
+            responseObserver.onNext(Empty.newBuilder().build());
+            responseObserver.onCompleted();
         }
 
         @Override
         public void leaderKill(LeaderKillRequest request, StreamObserver<Empty> responseObserver) {
+            responseObserver.onNext(Empty.newBuilder().build());
             responseObserver.onCompleted();
             try {
                 if (request.getLeaderId() == thisServerData.getId()) stop();
