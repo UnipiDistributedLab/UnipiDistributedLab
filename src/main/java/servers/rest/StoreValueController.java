@@ -34,7 +34,7 @@ public class StoreValueController {
     private void initRestInterface() {
         post("api/write", (req, res) -> {
             WriteValueRequest request = mGson.fromJson(req.body(), WriteValueRequest.class);
-            if (request == null) return "Worng Request";
+            if (request == null) return "Wrong Request";
             int clock = write(request.getValue(), request.getLamportCounter());
             WriteValueResponse response = new WriteValueResponse(clock);
             return mGson.toJson(response);
