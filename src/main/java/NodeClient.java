@@ -37,11 +37,10 @@ public class NodeClient {
                 scheduler.shutdownNow();
             };
             scheduler.schedule(runnable, 0, TimeUnit.SECONDS);
-//            Thread.ofVirtual().start(runnable);
+            Thread.ofPlatform().start(runnable);
 
         } catch (StatusRuntimeException e) {
             logger.log(Level.WARNING, "RPC failed: {0}", e.getStatus());
-            return;
         }
     }
 
@@ -57,7 +56,7 @@ public class NodeClient {
                 logger.log(Level.WARNING, "I am in leaderHealthTrigger for {0}", data.getUrl());
                 Empty resp = blockingStub.leaderHealthCheck(request);
             };
-            Thread.ofVirtual().start(runnable);
+            Thread.startVirtualThread(runnable);
 
         } catch (StatusRuntimeException e) {
             logger.log(Level.WARNING, "RPC failed: {0}", e.getStatus());
