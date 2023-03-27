@@ -1,3 +1,4 @@
+import rest.UnipiDistributedRestRouter;
 import rpc.UnipiDistributedRpcRouter;
 
 public class UnipiDistributedMain {
@@ -5,5 +6,7 @@ public class UnipiDistributedMain {
 
         UnipiDistributedRpcRouter rpcRouter = new UnipiDistributedRpcRouter();
         rpcRouter.startRouting();
+        UnipiDistributedRestRouter restRouter =  new UnipiDistributedRestRouter();
+        restRouter.startRouting();
     }
 }
