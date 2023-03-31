@@ -6,9 +6,9 @@ import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-public class MainValueStore {
+public class Startup {
     //default Spark port is 4567
-    private static final Logger logger = Logger.getLogger(MainValueStore.class.getName());
+    private static final Logger logger = Logger.getLogger(Startup.class.getName());
     private static final StoreValueController storeController = new StoreValueController();
 
 

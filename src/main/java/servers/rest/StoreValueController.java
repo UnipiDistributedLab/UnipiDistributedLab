@@ -4,7 +4,7 @@ import com.google.gson.Gson;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.StatusRuntimeException;
 import io.grpc.examples.servers.LamportClock.*;
-import servers.MainValueStore;
+import servers.Startup;
 import servers.StorageType;
 import servers.ValueStorage;
 import servers.rest.request.ReadValueResponse;
@@ -23,7 +23,7 @@ public class StoreValueController {
 
     private ValueStoreGrpc.ValueStoreBlockingStub writeBlockingStub;
     private ValueStoreGrpc.ValueStoreBlockingStub readBlockingStub;
-    private final Logger logger = Logger.getLogger(MainValueStore.class.getName());
+    private final Logger logger = Logger.getLogger(Startup.class.getName());
     private static final Gson mGson = new Gson();
 
     public void startRouting() throws InterruptedException {
