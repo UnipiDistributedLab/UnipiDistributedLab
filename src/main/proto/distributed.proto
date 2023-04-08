@@ -9,16 +9,40 @@ service DistributeAuthentication{
         rpc doAuthLogin(UserName)returns(APIResponse);
 }
 
-message APIResponse{
-        string responseMessage = 1;
-        int32 messageCode = 2;
-}
-
-
 message UserName{
         string userName = 1;
         string passWord = 2;
 }
+
+message APIResponse{
+        string responseMessage = 1;
+        int32 messageCode = 2;
+        UserModel userModel = 3;
+}
+
+message UserModel {
+        string userName = 1;
+        string email = 2;
+        WalletModel wallet = 3;
+}
+
+message WalletModel {
+        float balance = 1;
+        int32 freeCoin = 2;
+}
+
+service StreamTest {
+        rpc listenNewValue(UserId) returns (stream StreamMessage) {}
+}
+
+message UserId {
+        int32 id = 1;
+}
+
+message StreamMessage {
+        int32 newValue = 1;
+}
+
 
 service StockQuoteProvider {
         rpc serverSideStreamingGetListStockQuotes(Stock) returns (stream StockQuote) {}
