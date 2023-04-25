@@ -27,9 +27,7 @@ public class ValueStorage {
     private AtomicStorage atomicStorage = new AtomicStorage();
     private ScheduledThreadPoolExecutor carrierThread = new ScheduledThreadPoolExecutor(1);
     private Runnable periodicWork;
-    private ScheduledFuture periodicScheduler;
     private Integer period = 10;
-    private String otherServer;
     private StorageType type;
 
     public ValueStorage(StorageType type) {
@@ -39,7 +37,7 @@ public class ValueStorage {
 
     public ValueStorage(StorageType type, String otherServer) {
         this.type = type;
-        this.otherServer = otherServer;
+//        this.otherServer = otherServer;
         clock = new LamportClock(0);
         if (type == StorageType.READ) return;
         periodicSync(otherServer);
@@ -90,18 +88,17 @@ public class ValueStorage {
                             .build());
             periodicWork = () -> {
                 UpdateRequest request = null;
+                if (atomicStorage.isEmpty()) return;
                 try {
                     request = UpdateRequest
                             .newBuilder()
                             .putAllMap(atomicStorage.getAll())
                             .build();
                 } finally {
-                    if (atomicStorage.isEmpty()) return;
                     try {
                         blockingStub.updateSecondary(request);
                     } catch (Exception e) {
                         System.out.println(e.getMessage());
-                        periodicScheduler.notify();
                         carrierThread.scheduleAtFixedRate(periodicWork, 2, period, TimeUnit.SECONDS);
                     }
                 }
@@ -158,6 +155,7 @@ public class ValueStorage {
                 String[] splits = storedValue.split(":");
                 String value = splits[0];
                 String timeStamp = splits[1];
+                clock.increase();
                 ReadReply reply = ReadReply
                         .newBuilder()
                         .setValue(value)

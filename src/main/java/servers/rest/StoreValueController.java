@@ -31,6 +31,8 @@ public class StoreValueController {
         initRPC();
     }
 
+    //Default spark port is 4567
+
     private void initRestInterface() {
         post("api/write", (req, res) -> {
             WriteValueRequest request = mGson.fromJson(req.body(), WriteValueRequest.class);
