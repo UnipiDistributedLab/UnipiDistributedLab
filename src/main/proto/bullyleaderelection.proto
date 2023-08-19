@@ -1,0 +1,35 @@
+syntax="proto3";
+option java_multiple_files = true;
+option java_package = "io.grpc.examples.servers.BullyElection";
+option java_outer_classname = "BullyElectionProto";
+option objc_class_prefix = "HLW";
+package org.example.distributed;
+
+service LeaderElection{
+        rpc election(ElectionRequest)returns(ElectionResponse);
+        rpc leaderHealthCheck(LeaderHealthCheckInfo)returns(NodeHealthCheckResponseInfo);
+        rpc giveMeTheLeader(Empty)returns(LeaderHealthCheckInfo);
+}
+
+message ElectionRequest{
+        int32 id = 1;
+        string url = 2;
+}
+
+message ElectionResponse{
+       optional bool ok = 1;
+}
+
+message LeaderHealthCheckInfo{
+        string nodeIP = 1;
+        int32 port = 2;
+        int32 id = 3;
+}
+
+message NodeHealthCheckResponseInfo{
+        string nodeIP = 1;
+        int32 port = 2;
+        int32 id = 3;
+}
+
+message Empty {}

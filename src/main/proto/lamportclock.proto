@@ -1,0 +1,44 @@
+syntax="proto3";
+option java_multiple_files = true;
+option java_package = "io.grpc.examples.servers.LamportClock";
+option java_outer_classname = "LamportClockProto";
+option objc_class_prefix = "HLW";
+package org.example.distributed;
+
+service WriteValueStorage{
+        rpc doWrite(WriteRequest)returns(WriteResponse);
+}
+
+service ReadValueStorage{
+        rpc doRead(ReadRequest)returns(ReadResponse);
+        rpc doUpdate(UpdateRequest)returns(UpdateResponse);
+}
+
+message WriteRequest{
+        string value = 1;
+}
+
+message WriteResponse{
+        string responseMessage = 1;
+        int32 messageCode = 2;
+        int32 timeStamp = 3;
+}
+
+message ReadRequest{
+        int32 timeStamp = 1;
+}
+
+message ReadResponse{
+        string responseMessage = 1;
+        int32 messageCode = 2;
+        string value = 3;
+}
+
+message UpdateRequest {
+        map<int32, string> map = 1;
+}
+
+message UpdateResponse {
+        string responseMessage = 1;
+        int32 messageCode = 2;
+}
