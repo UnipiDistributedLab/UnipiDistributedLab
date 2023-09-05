@@ -1,3 +1,6 @@
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
 import servers.HostServer;
 import servers.lamportstorage.StorageType;
 import servers.leaderelection.ServerData;
@@ -26,20 +29,33 @@ public class UnipiDistributedMain {
      * Main launches the server from the command line.
      */
     public static void main(String[] args) throws IOException, InterruptedException {
-        ArrayList<ServerData> mappedServersData = new ArrayList<>(serversIds.size());
-        int count = 0;
-        for (Integer serverId : serversIds) {
-            Integer grPcPort = defaultPort + serverId;
-            int apiPort = 4567 + serverId;
-            StorageType type = count % 2 == 0 ? StorageType.WRITE : StorageType.READ;
-            mappedServersData.add(new ServerData(grPcPort, apiPort, serverId,  serverIP, type));
-            count += 1;
-        }
         try {
-            startRouting(mappedServersData);
+            startRouting(getTestServers());
         } catch (Exception e) {
             logger.log(Level.WARNING, e.getMessage());
         }
+    }
+
+    public static ArrayList<ServerData> getTestServers() {
+        ArrayList<ServerData> servers = new ArrayList<>();
+        InputStream inputStream = ClassLoader.getSystemClassLoader().getResourceAsStream("TestServers.json");
+        try {
+            JSONParser jsonParser = new JSONParser();
+            JSONObject jsonObject = (JSONObject) jsonParser.parse(new InputStreamReader(inputStream, "UTF-8"));
+            JSONArray serversData = (JSONArray) jsonObject.get("servers");
+            for (Object serverDataJson: serversData) {
+                JSONObject dataObj = (JSONObject) serverDataJson;
+                int grPcPort = Integer.parseInt(dataObj.get("grPcPort").toString());
+                int apiPort = Integer.parseInt(dataObj.get("apiPort").toString());
+                int serverId = Integer.parseInt(dataObj.get("serverId").toString());
+                String serverIP = dataObj.get("serverIP").toString();
+                String typeName = dataObj.get("type").toString();
+                servers.add(new ServerData(grPcPort, apiPort, serverId,  serverIP, StorageType.valueOf(typeName)));
+            }
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+        }
+        return servers;
     }
 
     public static void startRouting(ArrayList<ServerData> serversData) throws InterruptedException {
