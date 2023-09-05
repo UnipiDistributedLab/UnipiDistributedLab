@@ -1,35 +1,46 @@
-syntax="proto3";
+syntax = "proto3";
 option java_multiple_files = true;
-option java_package = "io.grpc.examples.servers.BullyElection";
-option java_outer_classname = "BullyElectionProto";
+option java_package = "io.grpc.unipi.election";
+option java_outer_classname = "ApiProto";
 option objc_class_prefix = "HLW";
 package org.example.distributed;
 
-service LeaderElection{
-        rpc election(ElectionRequest)returns(ElectionResponse);
-        rpc leaderHealthCheck(LeaderHealthCheckInfo)returns(NodeHealthCheckResponseInfo);
-        rpc giveMeTheLeader(Empty)returns(LeaderHealthCheckInfo);
-}
 
 message ElectionRequest{
-        int32 id = 1;
-        string url = 2;
+        int32 serverId = 1;
 }
 
 message ElectionResponse{
-       optional bool ok = 1;
+        optional bool okMessage = 1;
 }
 
-message LeaderHealthCheckInfo{
-        string nodeIP = 1;
-        int32 port = 2;
-        int32 id = 3;
+enum StorageType {
+        READ = 0;
+        WRITE = 1;
 }
 
-message NodeHealthCheckResponseInfo{
-        string nodeIP = 1;
-        int32 port = 2;
+message LeaderHealthCheckInfo {
+        int32 grPcPort = 1;
+        int32 apiPort = 2;
         int32 id = 3;
+        string url = 4;
+        StorageType type = 5;
+}
+
+message LeaderHealthCheckStream {
+        int32 port = 1;
+        int32 id = 2;
+}
+
+message LeaderKillRequest {
+        int32 leaderId = 1;
 }
 
 message Empty {}
+
+service LeaderElection{
+        rpc election(ElectionRequest)returns(ElectionResponse);
+        rpc heartBeat(LeaderHealthCheckInfo)returns(Empty);
+        rpc leaderKill(LeaderKillRequest)returns(Empty);
+        rpc giveTheLeader(Empty)returns(LeaderHealthCheckInfo);
+}

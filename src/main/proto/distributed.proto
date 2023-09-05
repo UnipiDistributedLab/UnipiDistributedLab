@@ -6,57 +6,16 @@ option objc_class_prefix = "HLW";
 package org.example.distributed;
 
 service DistributeAuthentication{
-        rpc doAuthLogin(UserName)returns(APIResponse);
-}
-
-message UserName{
-        string userName = 1;
-        string passWord = 2;
+        rpc authLogin(UserName)returns(APIResponse);
 }
 
 message APIResponse{
         string responseMessage = 1;
         int32 messageCode = 2;
-        UserModel userModel = 3;
 }
 
-message UserModel {
+
+message UserName{
         string userName = 1;
-        string email = 2;
-        WalletModel wallet = 3;
-}
-
-message WalletModel {
-        float balance = 1;
-        int32 freeCoin = 2;
-}
-
-service StreamTest {
-        rpc listenNewValue(UserId) returns (stream StreamMessage) {}
-}
-
-message UserId {
-        int32 id = 1;
-}
-
-message StreamMessage {
-        int32 newValue = 1;
-}
-
-
-service StockQuoteProvider {
-        rpc serverSideStreamingGetListStockQuotes(Stock) returns (stream StockQuote) {}
-        rpc chatStreamingGetListStockQuotes(stream Stock) returns (stream StockQuote) {}
-}
-message Stock {
-        string ticker_symbol = 1;
-        string company_name = 2;
-        string description = 3;
-}
-message StockQuote {
-        double price = 1;
-        int32 offer_number = 2;
-        string description = 3;
-        string ticker_symbol = 4;
-        string company_name = 5;
+        string passWord = 2;
 }
