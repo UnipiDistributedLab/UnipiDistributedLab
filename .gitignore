@@ -27,6 +27,7 @@ hs_err_pid*
 .idea/misc.xml
 .idea/uiDesigner.xml
 .idea/vcs.xml
+logs/*
 target/classes/distributed.proto
 target/generated-sources/protobuf/grpc-java/io/grpc/unipi/distributed/DistributeAuthenticationGrpc.java
 target/generated-sources/protobuf/java/io/grpc/unipi/distributed/ApiProto.java

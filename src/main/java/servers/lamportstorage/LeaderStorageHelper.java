@@ -120,6 +120,10 @@ public class LeaderStorageHelper {
         FileWriter fileWriter = null;
         String logFolderName = "logs";
         String logFolderFullPath = System.getProperty("user.dir") + "/" + logFolderName;
+        Boolean isWindows = System.getProperties().getProperty("os.name").toLowerCase().contains("windows");
+        if (isWindows) {
+            logFolderFullPath =  System.getProperty("user.dir") + "\\" + logFolderName;
+        }
         if (TimeOutConfigParams.shared().getSupportsClearLogFileCycle()) {
             clearFilesPeriod--;
             if (clearFilesPeriod <= 0) {
