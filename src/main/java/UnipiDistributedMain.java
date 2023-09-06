@@ -16,6 +16,7 @@ import java.util.logging.Logger;
 public class UnipiDistributedMain {
     //default Spark port is 4567
     private static final java.util.logging.Logger logger = Logger.getLogger(UnipiDistributedMain.class.getName());
+    private static HostServer hostServer;
     private static ArrayList<HostServer> hostServers = new ArrayList<>();
 
 
