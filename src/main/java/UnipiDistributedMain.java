@@ -1,6 +1,4 @@
-import org.json.simple.JSONArray;
-import org.json.simple.JSONObject;
-import org.json.simple.parser.JSONParser;
+import com.google.gson.Gson;
 import servers.HostServer;
 import servers.lamportstorage.StorageType;
 import servers.leaderelection.ServerData;
@@ -42,35 +40,24 @@ public class UnipiDistributedMain {
         }
     }
 
-
     public static ServerData getServerData() {
         JsonResourcesPropertiesReader jsonResourcesPropertiesReader = new JsonResourcesPropertiesReader("NodeServer.json");
-        int grPcPort = Integer.parseInt(jsonResourcesPropertiesReader.readVariable("grPcPort"));
-        int apiPort = Integer.parseInt(jsonResourcesPropertiesReader.readVariable("apiPort"));
-        int serverId = Integer.parseInt(jsonResourcesPropertiesReader.readVariable("serverId"));
-        String serverIP = jsonResourcesPropertiesReader.readVariable("serverIP");
-        String typeName = jsonResourcesPropertiesReader.readVariable("type");
-        return  new ServerData(grPcPort, apiPort, serverId,  serverIP, StorageType.valueOf(typeName));
+        Gson gson = new Gson();
+        return gson.fromJson(jsonResourcesPropertiesReader.getJsonObject().toJSONString(), ServerData.class);
     }
 
-    public static ArrayList<ServerData> getAllServers(String name) {
+    public static List<ServerData> getAllServers(String name) {
         JsonResourcesPropertiesReader jsonResourcesPropertiesReader = new JsonResourcesPropertiesReader(name);
-        return jsonResourcesPropertiesReader.readArray("servers", (serverDataJson) -> {
-            JSONObject dataObj = (JSONObject) serverDataJson;
-            int grPcPort = Integer.parseInt(dataObj.get("grPcPort").toString());
-            int apiPort = Integer.parseInt(dataObj.get("apiPort").toString());
-            int serverId = Integer.parseInt(dataObj.get("serverId").toString());
-            String serverIP = dataObj.get("serverIP").toString();
-            String typeName = dataObj.get("type").toString();
-            return new ServerData(grPcPort, apiPort, serverId,  serverIP, StorageType.valueOf(typeName));
-        });
+        Gson gson = new Gson();
+        ServerData[] servers = gson.fromJson(jsonResourcesPropertiesReader.readArray("servers").toJSONString(), ServerData[].class);
+        return Arrays.asList(servers);
     }
 
-    public static void startRouting(ServerData serverData, ArrayList<ServerData> otherNodesData) throws InterruptedException {
+    public static void startRouting(ServerData serverData, List<ServerData> otherNodesData) throws InterruptedException {
         hostServer = new HostServer(serverData, otherNodesData, serverData.getType());
     }
 
-    public static void testStartRouting(ArrayList<ServerData> serversData) throws InterruptedException {
+    public static void testStartRouting(List<ServerData> serversData) throws InterruptedException {
         for (ServerData serverData : serversData) {
             Runnable runnable = () -> {
                 HostServer server = new HostServer(serverData, serversData, serverData.getType());
