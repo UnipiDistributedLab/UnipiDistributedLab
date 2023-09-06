@@ -3,70 +3,70 @@
   {
     "grPcPort" : 8001,
     "apiPort" : 4568,
-    "serverId" : 1,
-    "serverIP" : "localhost",
+    "id" : 1,
+    "url" : "localhost",
     "type" : "WRITE"
   },
   {
     "grPcPort" : 8002,
     "apiPort" : 4569,
-    "serverId" : 2,
-    "serverIP" : "localhost",
+    "id" : 2,
+    "url" : "localhost",
     "type" : "READ"
   },
   {
     "grPcPort" : 8003,
     "apiPort" : 4570,
-    "serverId" : 3,
-    "serverIP" : "localhost",
+    "id" : 3,
+    "url" : "localhost",
     "type" : "WRITE"
   },
   {
     "grPcPort" : 8004,
     "apiPort" : 4571,
-    "serverId" : 4,
-    "serverIP" : "localhost",
+    "id" : 4,
+    "url" : "localhost",
     "type" : "READ"
   },
   {
     "grPcPort" : 8005,
     "apiPort" : 4572,
-    "serverId" : 5,
-    "serverIP" : "localhost",
+    "id" : 5,
+    "url" : "localhost",
     "type" : "WRITE"
   },
   {
     "grPcPort" : 8006,
     "apiPort" : 4573,
-    "serverId" : 6,
-    "serverIP" : "localhost",
+    "id" : 6,
+    "url" : "localhost",
     "type" : "READ"
   },
   {
     "grPcPort" : 8007,
     "apiPort" : 4574,
-    "serverId" : 7,
-    "serverIP" : "localhost",
+    "id" : 7,
+    "url" : "localhost",
     "type" : "WRITE"
   },
   {
     "grPcPort" : 8008,
     "apiPort" : 4575,
-    "serverId" : 8,
-    "serverIP" : "localhost",
+    "id" : 8,
+    "url" : "localhost",
     "type" : "READ"
   },
   {
     "grPcPort" : 8009,
     "apiPort" : 4576,
-    "serverId" : 9,
-    "serverIP" : "localhost",
+    "id" : 9,
+    "url" : "localhost",
     "type" : "WRITE"
   },
   {
     "grPcPort" : 8010,
     "apiPort" : 4577,
-    "serverId" : 10,
-    "serverIP" : "localhost",
+    "id" : 10,
+    "url" : "localhost",
     "type" : "READ"
   }]}

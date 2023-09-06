@@ -12,6 +12,7 @@ import utlis.AppStorage;
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.List;
 
 public final class HostServer implements NodeServer.NodeServerListener, MainController.MainControllerListener {
 
@@ -25,15 +26,15 @@ public final class HostServer implements NodeServer.NodeServerListener, MainCont
     private ValueStorage valueServer;
     private TimeOutConfigParams timeOutConfigParams;
 
-    public HostServer(ServerData serverData, ArrayList<ServerData> allServersData, StorageType type) {
+    public HostServer(ServerData serverData, List<ServerData> allServersData, StorageType type) {
         timeOutConfigParams = TimeOutConfigParams.shared();
         timeOutConfigParams.init();
         this.serverData = serverData;
         thisServerData = serverData;
-        this.allServersData = allServersData;
+        this.allServersData = new ArrayList<>(allServersData);
         javaServer = ServerBuilder.forPort(serverData.getGrPcPort());
         valueServer = new ValueStorage(type, serverData);
-        nodeServer = new NodeServer(serverData, allServersData, this);
+        nodeServer = new NodeServer(serverData, this.allServersData, this);
         maincontroller = new MainController(this);
         maincontroller.initRestInterface(serverData.getApiPort());
         try {

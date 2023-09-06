@@ -33,17 +33,11 @@ public class JsonResourcesPropertiesReader {
     }
 
     public String readVariable(String name) {
-//        JSONArray serversData = (JSONArray) jsonObject.get("servers");
-//        for (Object serverDataJson : serversData) {
         return  jsonObject.get(name).toString();
-//            JSONObject dataObj = (JSONObject) serverDataJson;
-//            int grPcPort = Integer.parseInt(dataObj.get("grPcPort").toString());
-//            int apiPort = Integer.parseInt(dataObj.get("apiPort").toString());
-//            int serverId = Integer.parseInt(dataObj.get("serverId").toString());
-//            String serverIP = dataObj.get("serverIP").toString();
-//            String typeName = dataObj.get("type").toString();
-//            servers.add(new ServerData(grPcPort, apiPort, serverId, serverIP, StorageType.valueOf(typeName)));
-//        }
+    }
+
+    public JSONObject getJsonObject() {
+        return jsonObject;
     }
 
     public <T> ArrayList<T> readArray(String name, TransformJsonArray transformJsonArray) {
@@ -53,5 +47,9 @@ public class JsonResourcesPropertiesReader {
             transformedData.add((T) transformJsonArray.transform(serverDataJson));
         }
         return transformedData;
+    }
+
+    public JSONArray readArray(String name) {
+      return  (JSONArray) jsonObject.get(name);
     }
 }
