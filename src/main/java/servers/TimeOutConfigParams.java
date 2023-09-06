@@ -14,6 +14,9 @@ public class TimeOutConfigParams {
     private Long leaderHeartBeatPeriodMS;
     private Long serverShutdownTimeoutMs;
     private Long electionTimeOutPeriodMS;
+    private Integer archiveLogsCycle;
+    private Integer clearLogFileCycle;
+    private Boolean supportsClearLogFileCycle;
 
     public static TimeOutConfigParams shared() {
         if (instance == null) {
@@ -31,6 +34,9 @@ public class TimeOutConfigParams {
             leaderHeartBeatPeriodMS = (Long) jsonObject.get("leaderHeartBeatPeriodMS");
             serverShutdownTimeoutMs = (Long) jsonObject.get("serverShutdownTimeoutMs");
             electionTimeOutPeriodMS = (Long) jsonObject.get("electionTimeOutPeriodMS");
+            archiveLogsCycle = Integer.parseInt(jsonObject.get("archiveLogsCycle").toString());
+            clearLogFileCycle = Integer.parseInt(jsonObject.get("clearLogFileCycle").toString());
+            supportsClearLogFileCycle = Boolean.parseBoolean(jsonObject.get("supportsClearLogFileCycle").toString());
         } catch (Exception e) {
             System.out.println(e.getMessage());
         }
@@ -50,5 +56,17 @@ public class TimeOutConfigParams {
 
     public Long getElectionTimeOutPeriodMS() {
         return electionTimeOutPeriodMS;
+    }
+
+    public Integer getArchiveLogsCycle() {
+        return archiveLogsCycle;
+    }
+
+    public Integer getClearLogFileCycle() {
+        return clearLogFileCycle;
+    }
+
+    public Boolean getSupportsClearLogFileCycle() {
+        return supportsClearLogFileCycle;
     }
 }

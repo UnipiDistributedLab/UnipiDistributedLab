@@ -19,7 +19,6 @@ public class UnipiDistributedMain {
     private static HostServer hostServer;
     private static ArrayList<HostServer> hostServers = new ArrayList<>();
 
-
     /**
      * Main launches the server from the command line.
      */

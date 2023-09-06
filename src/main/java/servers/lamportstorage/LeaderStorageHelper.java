@@ -12,6 +12,12 @@ import utlis.LamportClock;
 import utlis.Utils;
 
 import javax.annotation.Nullable;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
@@ -26,6 +32,8 @@ public class LeaderStorageHelper {
     private ServerData thisServerData;
     private Atomic<Boolean> isUnderSync = new Atomic<>();
     private Long period = TimeOutConfigParams.shared().getValueStorageSyncPeriodMS();
+    private Integer archivePeriod = TimeOutConfigParams.shared().getArchiveLogsCycle();
+    private Integer clearFilesPeriod = TimeOutConfigParams.shared().getClearLogFileCycle();
     private ScheduledThreadPoolExecutor carrierThread = new ScheduledThreadPoolExecutor(1);
     private Runnable periodicWork;
     private ScheduledFuture periodicScheduler;
@@ -85,11 +93,9 @@ public class LeaderStorageHelper {
                 isUnderSync.set(false);
                 return;
             }
-            System.out.println("Data are " + syncDataMap.keySet().size());
-            List<Integer> keys = new ArrayList<>(syncDataMap.keySet());
-            Collections.sort(keys);
-            for (Integer key : keys) {
-                System.out.println(key + " " + syncDataMap.get(key).toString());
+            archivePeriod--;
+            if (archivePeriod <= 0) {
+                archiveData(syncDataMap);
             }
             for (ServerData readServer : readServers) {
                 updateValueTo(syncDataMap, readServer);
@@ -102,6 +108,49 @@ public class LeaderStorageHelper {
 //            thead.start();
         };
         carrierThread.scheduleAtFixedRate(periodicWork, period, period, TimeUnit.MILLISECONDS);
+    }
+
+    private void archiveData(Map<Integer, String> dataMap) {
+        archivePeriod = TimeOutConfigParams.shared().getArchiveLogsCycle();
+        System.out.println("Data are " + dataMap.keySet().size());
+        List<Integer> keys = new ArrayList<>(dataMap.keySet());
+        Collections.sort(keys);
+        DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd_MM_yyyy_HH_mm_ss");
+        LocalDateTime now = LocalDateTime.now();
+        FileWriter fileWriter = null;
+        String logFolderName = "logs";
+        String logFolderFullPath = System.getProperty("user.dir") + "/" + logFolderName;
+        if (TimeOutConfigParams.shared().getSupportsClearLogFileCycle()) {
+            clearFilesPeriod--;
+            if (clearFilesPeriod <= 0) {
+                clearFolder(logFolderFullPath);
+            }
+        }
+        try {
+            System.getProperty("user.dir");
+            fileWriter = new FileWriter( logFolderFullPath + "/log_" + dtf.format(now) +".txt");
+            PrintWriter printWriter = new PrintWriter(fileWriter);
+            printWriter.println("Data sync " + dtf.format(now));
+            for (Integer key : keys) {
+                printWriter.println(key + " " + dataMap.get(key).toString());
+            }
+            printWriter.close();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
+    }
+
+    private void clearFolder(String logFolderPath) {
+        clearFilesPeriod = TimeOutConfigParams.shared().getClearLogFileCycle();
+        File[] listOfFiles = new File(logFolderPath).listFiles();
+        if (listOfFiles.length == 0) return;
+        for (File file : listOfFiles) {
+            if (file.isFile()) {
+                System.out.println(file.getName());
+            }
+            file.delete();
+        }
     }
 
     @Nullable
