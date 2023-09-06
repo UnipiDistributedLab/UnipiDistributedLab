@@ -227,3 +227,8 @@ target/protoc-dependencies/*
 target/protoc-plugins/protoc-3.19.2-osx-x86_64.exe
 target/protoc-plugins/protoc-gen-grpc-java-1.45.0-osx-x86_64.exe
 target/generated-sources/protobuf/
+target/protoc-plugins/protoc-3.19.2-osx-aarch_64.exe
+target/protoc-plugins/protoc-gen-grpc-java-1.45.0-osx-aarch_64.exe
+target/classes/EnvProperties.json
+target/classes/NodeServer.json
+target/classes/OtherNodeServers.json

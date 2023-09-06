@@ -1,0 +1,6 @@
+{
+  "valueStorageSyncPeriodMS" : 1000,
+  "leaderHeartBeatPeriodMS" : 400,
+  "serverShutdownTimeoutMs" : 1000,
+  "electionTimeOutPeriodMS" : 5000
+}
