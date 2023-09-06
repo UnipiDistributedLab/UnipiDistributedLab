@@ -127,7 +127,6 @@ public class LeaderStorageHelper {
             }
         }
         try {
-            System.getProperty("user.dir");
             fileWriter = new FileWriter( logFolderFullPath + "/log_" + dtf.format(now) +".txt");
             PrintWriter printWriter = new PrintWriter(fileWriter);
             printWriter.println("Data sync " + dtf.format(now));

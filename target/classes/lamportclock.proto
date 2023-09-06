@@ -1,0 +1,57 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "io.grpc.examples.utlis.LamportClock";
+option java_outer_classname = "LamportClockProto";
+option objc_class_prefix = "LCP";
+
+package lamportclock;
+
+// The greeting service definition.
+service ValueStore {
+        // Sends a greeting
+        rpc Write(WriteRequest) returns (WriteReply) {}
+        rpc Read(ReadRequest) returns (ReadReply) {}
+        rpc ReadAll(Empty) returns (ReadAllReply) {}
+        rpc UpdateSecondary(UpdateRequest) returns (UpdateReply) {}
+}
+
+message WriteRequest {
+        string value = 1;
+        int32 counter = 2;
+        string timestamp = 3;
+        string id = 4;
+}
+
+message WriteReply {
+        string value = 1;
+        int32 counter = 2;
+        string timestamp = 3;
+        string id = 4;
+}
+
+message ReadRequest {
+        int32 counter = 1;
+        string id = 4;
+}
+
+message ReadReply {
+        string value = 1;
+        int32 counter = 2;
+        string timestamp = 3;
+        string id = 4;
+}
+
+message ReadAllReply{
+        map<int32, string> map = 1;
+}
+
+message UpdateRequest {
+        map<int32, string> map = 1;
+}
+
+message UpdateReply {
+        int32 status = 1;
+}
+
+message Empty {}
