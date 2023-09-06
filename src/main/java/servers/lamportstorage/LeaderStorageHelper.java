@@ -242,11 +242,11 @@ public class LeaderStorageHelper {
     }
 
     public void read(ReadRequest request, StreamObserver<ReadReply> responseObserver) {
-        int serverIndex = Math.abs(request.getId().hashCode()) % writeServers.size();
+        int serverIndex = Math.abs(request.getId().hashCode()) % readServers.size();
         ManagedChannel channel = null;
         try {
-            ServerData writeSeverData = writeServers.get(serverIndex);
-            channel = ManagedChannelBuilder.forTarget(writeSeverData.getTotalUrl())
+            ServerData readServersData = readServers.get(serverIndex);
+            channel = ManagedChannelBuilder.forTarget(readServersData.getTotalUrl())
                     // Channels are secure by default (via SSL/TLS). For the example we disable TLS to avoid
                     // needing certificates.
                     .usePlaintext()
