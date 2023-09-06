@@ -1,0 +1,7 @@
+{
+  "grPcPort" : 8000,
+  "apiPort" : 4567,
+  "serverId" : 0,
+  "serverIP" : "localhost",
+  "type" : "READ"
+}

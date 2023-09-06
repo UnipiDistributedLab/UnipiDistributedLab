@@ -4,6 +4,7 @@ import org.json.simple.parser.JSONParser;
 import servers.HostServer;
 import servers.lamportstorage.StorageType;
 import servers.leaderelection.ServerData;
+import utlis.JsonResourcesPropertiesReader;
 import utlis.Utils;
 
 import java.io.*;
@@ -17,11 +18,10 @@ import java.util.logging.Logger;
 public class UnipiDistributedMain {
     //default Spark port is 4567
     private static final java.util.logging.Logger logger = Logger.getLogger(UnipiDistributedMain.class.getName());
-
-
     public static List<Integer> serversIds = Arrays.asList(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
     private static final Integer defaultPort = 8000;
     public static final String serverIP = "localhost";
+    private static HostServer hostServer;
     private static ArrayList<HostServer> hostServers = new ArrayList<>();
 
 
@@ -29,44 +29,53 @@ public class UnipiDistributedMain {
      * Main launches the server from the command line.
      */
     public static void main(String[] args) throws IOException, InterruptedException {
+        JsonResourcesPropertiesReader jsonResourcesPropertiesReader = new JsonResourcesPropertiesReader("EnvProperties.json");
+        String isTestModeStr = jsonResourcesPropertiesReader.readVariable("isUnderTestMode");
+        if (!Boolean.parseBoolean(isTestModeStr)) {
+            startRouting(getServerData(), getAllServers("OtherNodeServers.json"));
+            return;
+        }
         try {
-            startRouting(getTestServers());
+            testStartRouting(getAllServers("TestServers.json"));
         } catch (Exception e) {
             logger.log(Level.WARNING, e.getMessage());
         }
     }
 
-    public static ArrayList<ServerData> getTestServers() {
-        ArrayList<ServerData> servers = new ArrayList<>();
-        InputStream inputStream = ClassLoader.getSystemClassLoader().getResourceAsStream("TestServers.json");
-        try {
-            JSONParser jsonParser = new JSONParser();
-            JSONObject jsonObject = (JSONObject) jsonParser.parse(new InputStreamReader(inputStream, "UTF-8"));
-            JSONArray serversData = (JSONArray) jsonObject.get("servers");
-            for (Object serverDataJson: serversData) {
-                JSONObject dataObj = (JSONObject) serverDataJson;
-                int grPcPort = Integer.parseInt(dataObj.get("grPcPort").toString());
-                int apiPort = Integer.parseInt(dataObj.get("apiPort").toString());
-                int serverId = Integer.parseInt(dataObj.get("serverId").toString());
-                String serverIP = dataObj.get("serverIP").toString();
-                String typeName = dataObj.get("type").toString();
-                servers.add(new ServerData(grPcPort, apiPort, serverId,  serverIP, StorageType.valueOf(typeName)));
-            }
-        } catch (Exception e) {
-            System.out.println(e.getMessage());
-        }
-        return servers;
+
+    public static ServerData getServerData() {
+        JsonResourcesPropertiesReader jsonResourcesPropertiesReader = new JsonResourcesPropertiesReader("NodeServer.json");
+        int grPcPort = Integer.parseInt(jsonResourcesPropertiesReader.readVariable("grPcPort"));
+        int apiPort = Integer.parseInt(jsonResourcesPropertiesReader.readVariable("apiPort"));
+        int serverId = Integer.parseInt(jsonResourcesPropertiesReader.readVariable("serverId"));
+        String serverIP = jsonResourcesPropertiesReader.readVariable("serverIP");
+        String typeName = jsonResourcesPropertiesReader.readVariable("type");
+        return  new ServerData(grPcPort, apiPort, serverId,  serverIP, StorageType.valueOf(typeName));
     }
 
-    public static void startRouting(ArrayList<ServerData> serversData) throws InterruptedException {
+    public static ArrayList<ServerData> getAllServers(String name) {
+        JsonResourcesPropertiesReader jsonResourcesPropertiesReader = new JsonResourcesPropertiesReader(name);
+        return jsonResourcesPropertiesReader.readArray("servers", (serverDataJson) -> {
+            JSONObject dataObj = (JSONObject) serverDataJson;
+            int grPcPort = Integer.parseInt(dataObj.get("grPcPort").toString());
+            int apiPort = Integer.parseInt(dataObj.get("apiPort").toString());
+            int serverId = Integer.parseInt(dataObj.get("serverId").toString());
+            String serverIP = dataObj.get("serverIP").toString();
+            String typeName = dataObj.get("type").toString();
+            return new ServerData(grPcPort, apiPort, serverId,  serverIP, StorageType.valueOf(typeName));
+        });
+    }
+
+    public static void startRouting(ServerData serverData, ArrayList<ServerData> otherNodesData) throws InterruptedException {
+        hostServer = new HostServer(serverData, otherNodesData, serverData.getType());
+    }
+
+    public static void testStartRouting(ArrayList<ServerData> serversData) throws InterruptedException {
         for (ServerData serverData : serversData) {
             Runnable runnable = () -> {
                 HostServer server = new HostServer(serverData, serversData, serverData.getType());
                 //Here we start the host server for each node and also pas serversData in order to be aware for all available nodes
                 hostServers.add(server);
-//                servers.controllers.add(storeController);
-//                storeController.getServer().startPeriodicCheck();
-//                storeController.initRestInterface(serverData.getApiPort());
             };
             Thread thread = new Thread(runnable);
             thread.start();
@@ -116,39 +125,33 @@ public class UnipiDistributedMain {
     }
 
     public static void writeResponseTest() {
-        for (int j = 0; j < 200; j++) {
-            int serverIndex = Math.abs(Utils.getString().hashCode()) % hostServers.size();
-            HostServer server = hostServers.get(serverIndex);
-            String urlTest = "http://" + server.serverData.getUrl() + ":" + server.serverData.getApiPort()+"/api/write";
-            System.out.println("curl -X POST " + urlTest + " -d '{ \"value\" : \"heytheres" + " " + j + " " + "\",  \"lamportCounter\" : 1}'");
+        for (int i = 0; i < 2; i++) {
+            Thread thread = new Thread(() -> {
+                URL url = null;
+                try {
+                    Thread.sleep(15 * 1000);
+                    for (int j = 0; j < 175; j++) {
+                        int serverIndex = Math.abs(Utils.getString().hashCode()) % hostServers.size();
+                        servers.HostServer server = hostServers.get(serverIndex);
+                        url = new URL("http://" + server.serverData.getUrl() + ":" + server.serverData.getApiPort()+"/api/write");
+                        HttpURLConnection con = (HttpURLConnection) url.openConnection();
+                        con.setRequestMethod("POST");
+                        con.setDoOutput(true);
+                        String jsonInputString = "{\"value\": \"" + Utils.getString()  + "\", \"lamportCounter\": 1}";
+                        con.setRequestProperty("accept", "application/json");
+                        try(OutputStream os = con.getOutputStream()) {
+                            byte[] input = jsonInputString.getBytes("utf-8");
+                            os.write(input, 0, input.length);
+                        }
+                        InputStream responseStream = con.getInputStream();
+                        printResponse(responseStream,server);
+
+                    }
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+            });
+            thread.start();
         }
-//        for (int i = 0; i < 2; i++) {
-//            Thread thread = new Thread(() -> {
-//                URL url = null;
-//                try {
-//                    Thread.sleep(15 * 1000);
-//                    for (int j = 0; j < 175; j++) {
-//                        int serverIndex = Math.abs(Utils.getString().hashCode()) % hostServers.size();
-//                        servers.HostServer server = hostServers.get(serverIndex);
-//                        url = new URL("http://" + server.serverData.getUrl() + ":" + server.serverData.getApiPort()+"/api/write");
-//                        HttpURLConnection con = (HttpURLConnection) url.openConnection();
-//                        con.setRequestMethod("POST");
-//                        con.setDoOutput(true);
-//                        String jsonInputString = "{\"value\": \"" + Utils.getString()  + "\", \"lamportCounter\": 1}";
-//                        con.setRequestProperty("accept", "application/json");
-//                        try(OutputStream os = con.getOutputStream()) {
-//                            byte[] input = jsonInputString.getBytes("utf-8");
-//                            os.write(input, 0, input.length);
-//                        }
-//                        InputStream responseStream = con.getInputStream();
-//                        printResponse(responseStream,server);
-//
-//                    }
-//                } catch (Exception e) {
-//                    throw new RuntimeException(e);
-//                }
-//            });
-//            thread.start();
-//        }
     }
 }

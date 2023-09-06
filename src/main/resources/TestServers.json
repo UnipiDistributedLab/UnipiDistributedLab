@@ -75,18 +75,4 @@
     "serverId" : 10,
     "serverIP" : "localhost",
     "type" : "READ"
-  },
-  {
-    "grPcPort" : 8011,
-    "apiPort" : 4578,
-    "serverId" : 11,
-    "serverIP" : "localhost",
-    "type" : "WRITE"
-  },
-  {
-    "grPcPort" : 8012,
-    "apiPort" : 4579,
-    "serverId" : 12,
-    "serverIP" : "localhost",
-    "type" : "READ"
   }]}

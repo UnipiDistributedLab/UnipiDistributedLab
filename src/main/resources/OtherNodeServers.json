@@ -1,11 +1,5 @@
 
-{"servers" : [{
-  "grPcPort" : 8000,
-  "apiPort" : 4567,
-  "serverId" : 0,
-  "serverIP" : "localhost",
-  "type" : "READ"
-},
+{"servers" : [
   {
     "grPcPort" : 8001,
     "apiPort" : 4568,
