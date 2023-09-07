@@ -1,6 +1,5 @@
 import com.google.gson.Gson;
 import servers.HostServer;
-import servers.lamportstorage.StorageType;
 import servers.leaderelection.ServerData;
 import utlis.JsonResourcesPropertiesReader;
 import utlis.Utils;
@@ -50,13 +49,13 @@ public class UnipiDistributedMain {
     }
 
     public static void startRouting(ServerData serverData, List<ServerData> otherNodesData) throws InterruptedException {
-        hostServer = new HostServer(serverData, otherNodesData, serverData.getType());
+        hostServer = new HostServer(serverData, otherNodesData);
     }
 
     public static void testStartRouting(List<ServerData> serversData) throws InterruptedException {
         for (ServerData serverData : serversData) {
             Runnable runnable = () -> {
-                HostServer server = new HostServer(serverData, serversData, serverData.getType());
+                HostServer server = new HostServer(serverData, serversData);
                 //Here we start the host server for each node and also pas serversData in order to be aware for all available nodes
                 hostServers.add(server);
             };

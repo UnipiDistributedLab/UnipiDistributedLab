@@ -6,8 +6,6 @@ import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
 import io.grpc.unipi.election.*;
 import servers.TimeOutConfigParams;
-import servers.lamportstorage.StorageType;
-import servers.lamportstorage.ValueStorage;
 import utlis.Atomic;
 
 import javax.annotation.Nullable;
@@ -44,7 +42,6 @@ public class NodeServer implements NodeClient.NodeClientListener {
     private Server server;
     private ScheduledThreadPoolExecutor healtchCheckThread;
     private WeakReference<NodeServerListener> mListener;
-    private ValueStorage storage;
 
     public NodeServer(ServerData serverData, ArrayList<ServerData> allServersData, NodeServerListener listener) {
         this.mListener = new WeakReference(listener);
@@ -67,10 +64,6 @@ public class NodeServer implements NodeClient.NodeClientListener {
             System.err.println("*** server shut down");
         }));
         builder.addService(new ElectionImpl());
-    }
-
-    public void setValueStorage(ValueStorage storage) {
-        this.storage = storage;
     }
 
     public void setServer(Server server) {
@@ -240,7 +233,7 @@ public class NodeServer implements NodeClient.NodeClientListener {
         @Override
         public void heartBeat(LeaderHealthCheckInfo request, StreamObserver<Empty> responseObserver) {
             leaderTarget = new ServerData(request.getGrPcPort(), request.getApiPort(), request.getId(),
-                    request.getUrl(), StorageType.valueOf(request.getType().name()));
+                    request.getUrl());
             if (mListener.get() != null) {
                 mListener.get().leaderUpdate(leaderTarget);
             }
@@ -277,7 +270,6 @@ public class NodeServer implements NodeClient.NodeClientListener {
                     .newBuilder()
                     .setGrPcPort(leaderTarget.getGrPcPort())
                     .setApiPort(leaderTarget.getApiPort())
-                    .setType(leaderTarget.getGrpcType())
                     .setId(leaderTarget.getId())
                     .setUrl(leaderTarget.getUrl())
                     .build();

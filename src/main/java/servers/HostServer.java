@@ -2,9 +2,6 @@ package servers;
 
 import io.grpc.ServerBuilder;
 import servers.controllers.MainController;
-import servers.lamportstorage.LeaderStorageHelper;
-import servers.lamportstorage.StorageType;
-import servers.lamportstorage.ValueStorage;
 import servers.leaderelection.NodeServer;
 import servers.leaderelection.ServerData;
 import utlis.AppStorage;
@@ -22,27 +19,22 @@ public final class HostServer implements NodeServer.NodeServerListener, MainCont
     final private MainController maincontroller;
     private ArrayList<ServerData> allServersData;
     private ServerData thisServerData;
-    private LeaderStorageHelper leaderStorageHelper;
-    private ValueStorage valueServer;
     private TimeOutConfigParams timeOutConfigParams;
 
-    public HostServer(ServerData serverData, List<ServerData> allServersData, StorageType type) {
+    public HostServer(ServerData serverData, List<ServerData> allServersData) {
         timeOutConfigParams = TimeOutConfigParams.shared();
         timeOutConfigParams.init();
         this.serverData = serverData;
         thisServerData = serverData;
         this.allServersData = new ArrayList<>(allServersData);
         javaServer = ServerBuilder.forPort(serverData.getGrPcPort());
-        valueServer = new ValueStorage(type, serverData);
         nodeServer = new NodeServer(serverData, this.allServersData, this);
         maincontroller = new MainController(this);
         maincontroller.initRestInterface(serverData.getApiPort());
         try {
             nodeServer.addElectionService(javaServer);
-            valueServer.addValueService(javaServer);
             io.grpc.Server hostServer = javaServer.build().start();
             nodeServer.setServer(hostServer);
-            nodeServer.setValueStorage(valueServer);
             nodeServer.blockUntilShutdown();
         } catch (InterruptedException | IOException e) {
             e.printStackTrace();
@@ -64,7 +56,6 @@ public final class HostServer implements NodeServer.NodeServerListener, MainCont
                 if (serverInst.getId() <= leader.getId()) udpatedServers.add(serverInst);
             }
             allServersData = udpatedServers;
-            if (leaderStorageHelper != null) leaderStorageHelper.updateAllServer(udpatedServers);
         }
         AppStorage.getInstance().setLeader(leader);
         maincontroller.leaderIs(leader);
@@ -77,14 +68,8 @@ public final class HostServer implements NodeServer.NodeServerListener, MainCont
             if (serverInst.getId() <= leader.getId()) udpatedServers.add(serverInst);
         }
         allServersData = udpatedServers;
-        leaderStorageHelper = new LeaderStorageHelper(allServersData, thisServerData, javaServer);
-        valueServer.setLeader(leaderStorageHelper);
     }
 
     @Override
-    public void leaderKilled() {
-        if (valueServer == null) return;
-        valueServer.stopOperations();
-        valueServer = null;
-    }
+    public void leaderKilled() {}
 }

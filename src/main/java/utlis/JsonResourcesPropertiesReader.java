@@ -3,8 +3,6 @@ package utlis;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
-import servers.lamportstorage.StorageType;
-import servers.leaderelection.ServerData;
 
 import java.io.InputStream;
 import java.io.InputStreamReader;

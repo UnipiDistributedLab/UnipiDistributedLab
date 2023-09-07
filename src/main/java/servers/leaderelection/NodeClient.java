@@ -76,7 +76,6 @@ public class NodeClient {
                         .newBuilder()
                         .setGrPcPort(data.getGrPcPort())
                         .setApiPort(data.getApiPort())
-                        .setType(data.getGrpcType())
                         .setId(data.getId())
                         .setUrl(data.getUrl())
                         .build();

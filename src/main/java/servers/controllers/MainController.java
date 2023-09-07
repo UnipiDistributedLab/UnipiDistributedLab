@@ -4,8 +4,6 @@ import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
-import io.grpc.StatusRuntimeException;
-import io.grpc.examples.utlis.LamportClock.*;
 import io.grpc.unipi.election.LeaderElectionGrpc;
 import io.grpc.unipi.election.LeaderKillRequest;
 import servers.leaderelection.ServerData;
@@ -31,9 +29,6 @@ public class MainController {
     public interface MainControllerListener {
         void startPeriodicCheck();
     }
-
-    private ValueStoreGrpc.ValueStoreBlockingStub writeBlockingStub;
-    private ValueStoreGrpc.ValueStoreBlockingStub readBlockingStub;
     private final Logger logger = Logger.getLogger(MainController.class.getName());
     private static final Gson mGson = new Gson();
     private @Nullable ManagedChannel leaderChannel;
@@ -59,19 +54,6 @@ public class MainController {
         });
         http.get("api/ping", (req, res) -> {
             return "pong";
-        });
-        http.post("api/write", (req, res) -> {
-            WriteValueRequest request = mGson.fromJson(req.body(), WriteValueRequest.class);
-            if (request == null) return mGson.toJson(new GenericResponse("Wrong Request", false));;
-            Integer clock = write(request.getValue(), request.getLamportCounter(), Utils.getString());
-            WriteValueResponse response = new WriteValueResponse(clock);
-            return mGson.toJson(response);
-        });
-        http.get("api/read", (req, res) -> {
-            String clock = req.queryParams("clock");
-            if (clock == null) return "Missing params";
-            ReadValueResponse response = new ReadValueResponse(read(clock));
-            return mGson.toJson(response);
         });
         http.post("api/killleader", (req, res) -> {
             try {
@@ -104,47 +86,6 @@ public class MainController {
         leaderChannel =  ManagedChannelBuilder.forTarget(leader.getTotalUrl())
                 .usePlaintext()
                 .build();
-        writeBlockingStub = ValueStoreGrpc.newBlockingStub(leaderChannel);
-        readBlockingStub = ValueStoreGrpc.newBlockingStub(leaderChannel);
-    }
-
-    @Nullable
-    private Integer write(String value, int lamportCounter, String id) {
-        String realtime = new Timestamp(System.currentTimeMillis()).toString();
-        WriteRequest request = WriteRequest.newBuilder()
-                .setValue(value)
-                .setCounter(lamportCounter)
-                .setId(id)
-                .setTimestamp(realtime)
-                .build();
-        WriteReply response;
-        try {
-            response = writeBlockingStub.write(request);
-//            logger.info("Received: " + response.getCounter() + ":" + response.getTimestamp() + ":" + response.getValue());
-            return response.getCounter();
-        } catch (StatusRuntimeException e) {
-            ServerData leaderData = AppStorage.getInstance().getLeader();
-            ValueStoreGrpc.ValueStoreBlockingStub writeBlockingStubInst = ValueStoreGrpc.newBlockingStub(ManagedChannelBuilder.forTarget(leaderData.getTotalUrl())
-                    .usePlaintext()
-                    .build());
-            try {
-                response = writeBlockingStubInst.write(request);
-                return response.getCounter();
-            } catch (Exception ex) {
-                logger.info(ex.getMessage());
-            }
-            writeBlockingStub = writeBlockingStubInst;
-        }
-        return null;
-    }
-
-    private String read(String lamportClock) {
-        ReadRequest readIdRequest = ReadRequest
-                .newBuilder()
-                .setCounter(Integer.parseInt(lamportClock))
-                .build();
-        ReadReply response = readBlockingStub.read(readIdRequest);
-        return response.getValue();
     }
 
     public void leaderIs(@Nullable ServerData leader) {
