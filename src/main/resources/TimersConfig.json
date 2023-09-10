@@ -1,8 +1,9 @@
 {
-  "valueStorageSyncPeriodMS" : 1000,
   "leaderHeartBeatPeriodMS" : 400,
   "serverShutdownTimeoutMs" : 1000,
-  "electionTimeOutPeriodMS" : 5000,
+  "electionTimeOutMaxPeriodMS" : 7000,
+  "electionTimeOutMinPeriodMS" : 3000,
+  "electionFinishTimeOutMinPeriodMS" : 5000,
   "archiveLogsCycle" : 5,
   "clearLogFileCycle" : 20,
   "supportsClearLogFileCycle" : true

@@ -12,7 +12,7 @@ import java.util.logging.Logger;
 public class NodeClient {
 
     public interface NodeClientListener {
-        void receveidResponseFrom(String targer, ElectionResponse response);
+//        void receveidResponseFrom(String targer, ElectionResponse response);
     }
 
     private static final Logger logger = Logger.getLogger(NodeClient.class.getName());
@@ -50,13 +50,13 @@ public class NodeClient {
     public void electionTrigger(Integer id) {
         try {
             Runnable runnable = () -> {
-                ElectionRequest request = ElectionRequest.newBuilder().setServerId(id).build();
-                try {
-                    ElectionResponse response = blockingStub.election(request);
-                    if (mListener.get() != null) mListener.get().receveidResponseFrom(data.getTotalUrl(), response);
-                } catch (Exception e) {
-                    System.out.println(e.getMessage());
-                }
+//                ElectionRequest request = ElectionRequest.newBuilder().setServerId(id).build();
+//                try {
+//                    ElectionResponse response = blockingStub.election(request);
+//                    if (mListener.get() != null) mListener.get().receveidResponseFrom(data.getTotalUrl(), response);
+//                } catch (Exception e) {
+//                    System.out.println(e.getMessage());
+//                }
             };
             Thread thread = new Thread(runnable);
             thread.start();

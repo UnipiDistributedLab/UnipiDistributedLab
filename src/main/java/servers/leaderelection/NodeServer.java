@@ -28,13 +28,13 @@ public class NodeServer implements NodeClient.NodeClientListener {
     }
 
     private final ArrayList<NodeClient> targetsClient = new ArrayList<>();
-    private NodeStatus status = NodeStatus.NODE;
+    private NodeStatus status = NodeStatus.CANDIDATE;
     private ServerData leaderTarget;
+    private int term = 0;
     private boolean isUnderElection = false;
-    private Atomic<Integer> leaderLiveCountDownPeriod = new Atomic<>();
     private final Long leaderHeartBeatPeriodMs = TimeOutConfigParams.shared().getLeaderHeartBeatPeriodMS();
     private final Long mServerShutdownTimeoutMs = TimeOutConfigParams.shared().getServerShutdownTimeoutMs();
-    private final Long electionTimeOutPeriodMs = TimeOutConfigParams.shared().getElectionTimeOutPeriodMS();
+    private final Integer electionTimeOutPeriodMs = TimeOutConfigParams.shared().getElectionTimeOutPeriodMS();
     ScheduledThreadPoolExecutor leadreHealthCheckThread = new ScheduledThreadPoolExecutor(1);
     private static final Logger logger = Logger.getLogger(NodeServer.class.getName());
     private final ServerData thisServerData;
@@ -45,7 +45,6 @@ public class NodeServer implements NodeClient.NodeClientListener {
 
     public NodeServer(ServerData serverData, ArrayList<ServerData> allServersData, NodeServerListener listener) {
         this.mListener = new WeakReference(listener);
-        this.leaderLiveCountDownPeriod.set(5);
         this.thisServerData = serverData;
         this.allServersData = allServersData;
         initElectionClient(thisServerData, allServersData);
@@ -72,23 +71,16 @@ public class NodeServer implements NodeClient.NodeClientListener {
 
     public void startPeriodicCheck() {
         if (status == NodeStatus.LEADER) return;
+        healtchCheckThread.shutdownNow();
         healtchCheckThread = new ScheduledThreadPoolExecutor(1);
         Runnable periodicWork = () -> {
             if (status == NodeStatus.LEADER) return;
-            if (leaderLiveCountDownPeriod.get() == 0) {
-                if (isUnderElection) return;
-                logger.info(" Start election no leader exist");
-                startElection();
-                electionTimeOut();
-                return;
-            }
-            System.out.println(leaderLiveCountDownPeriod);
-            leaderLiveCountDownPeriod.set(leaderLiveCountDownPeriod.get() - 1);
+            if (isUnderElection) return;
+            logger.info(" Start election no leader exist");
+            startElection();
+            electionTimeOut();
         };
-        if (leaderLiveCountDownPeriod.get() == 0) {
-            return;
-        }
-        healtchCheckThread.scheduleAtFixedRate(periodicWork, 3, 1, SECONDS);
+        healtchCheckThread.scheduleAtFixedRate(periodicWork, 3, TimeOutConfigParams.shared().getElectionTimeOutPeriodMS(), MILLISECONDS);
     }
 
     private void electionTimeOut() {
@@ -96,7 +88,6 @@ public class NodeServer implements NodeClient.NodeClientListener {
         Runnable periodicWork;
         periodicWork = () -> {
             isUnderElection = false;
-            this.leaderLiveCountDownPeriod.set(5);
             if (status == NodeStatus.LEADER) {
                 Thread thread = new Thread(() -> {
                     if (mListener.get() != null) {
@@ -109,7 +100,7 @@ public class NodeServer implements NodeClient.NodeClientListener {
             }
             carrierThread.shutdownNow();
         };
-        carrierThread.schedule(periodicWork, electionTimeOutPeriodMs, TimeUnit.MILLISECONDS);
+        carrierThread.schedule(periodicWork, TimeOutConfigParams.shared().getElectionFinishTimeOutMinPeriodMS(), TimeUnit.MILLISECONDS);
     }
 
     /**
@@ -179,7 +170,7 @@ public class NodeServer implements NodeClient.NodeClientListener {
         }
         isUnderElection = true;
         leaderTarget = null;
-        status = NodeStatus.LEADER;
+        status = NodeStatus.CANDIDATE;
         for (NodeClient client : targetsClient) {
             client.electionTrigger(thisServerData.getId());
         }
@@ -195,14 +186,14 @@ public class NodeServer implements NodeClient.NodeClientListener {
         }
     }
 
-    @Override
-    public void receveidResponseFrom(String targer, ElectionResponse response) {
-        logger.info("receveidResponseFrom i " + thisServerData.getId() + " received response from " + targer);
-        if (response.hasOkMessage()) {
-            logger.info("receveidResponseFrom i " + thisServerData.getId() + " am not a leader");
-            status = NodeStatus.NODE;
-        }
-    }
+//    @Override
+//    public void receveidResponseFrom(String targer, ElectionResponse response) {
+//        logger.info("receveidResponseFrom i " + thisServerData.getId() + " received response from " + targer);
+//        if (response.hasOkMessage()) {
+//            logger.info("receveidResponseFrom i " + thisServerData.getId() + " am not a leader");
+//            status = NodeStatus.FOLLOWER;
+//        }
+//    }
 
     /**
      * Leader election gRPC methods
@@ -210,25 +201,47 @@ public class NodeServer implements NodeClient.NodeClientListener {
     class ElectionImpl extends LeaderElectionGrpc.LeaderElectionImplBase {
 
         @Override
-        public void election(ElectionRequest request, StreamObserver<ElectionResponse> responseObserver) {
-            try {
-                ElectionResponse.Builder responseBuilder = ElectionResponse.newBuilder();
-                Runnable runnable = () -> {
-                    if (request.getServerId() > thisServerData.getId()) {
-                        responseObserver.onNext(responseBuilder.build());
-                        responseObserver.onCompleted();
-                        return;
-                    }
-                    ElectionResponse response = responseBuilder.setOkMessage(true).build();
-                    responseObserver.onNext(response);
-                    responseObserver.onCompleted();
-                };
-                Thread thread = new Thread(runnable);
-                thread.start();
-            } catch (Exception e) {
-                logger.info(e.getMessage());
+        public void appendEntry(AppendEntryArgs request, StreamObserver<AppendEntryReply> responseObserver) {
+            int receivedTerm =  request.getTerm();
+            if (status == NodeStatus.LEADER && receivedTerm > term) {
+                //TODO step down to Follower
+                status = NodeStatus.FOLLOWER;
             }
+            term = Integer.max(term, receivedTerm);
+            super.appendEntry(request, responseObserver);
         }
+
+        @Override
+        public void requestVote(RequestVoteArgs request, StreamObserver<RequestVoteReply> responseObserver) {
+            int receivedTerm =  request.getTerm();
+            if (status == NodeStatus.LEADER && receivedTerm > term) {
+                //TODO step down to Follower
+                status = NodeStatus.FOLLOWER;
+            }
+            term = Integer.max(term, receivedTerm);
+            super.requestVote(request, responseObserver);
+        }
+
+        //        @Override
+//        public void election(ElectionRequest request, StreamObserver<ElectionResponse> responseObserver) {
+//            try {
+//                ElectionResponse.Builder responseBuilder = ElectionResponse.newBuilder();
+//                Runnable runnable = () -> {
+//                    if (request.getServerId() > thisServerData.getId()) {
+//                        responseObserver.onNext(responseBuilder.build());
+//                        responseObserver.onCompleted();
+//                        return;
+//                    }
+//                    ElectionResponse response = responseBuilder.setOkMessage(true).build();
+//                    responseObserver.onNext(response);
+//                    responseObserver.onCompleted();
+//                };
+//                Thread thread = new Thread(runnable);
+//                thread.start();
+//            } catch (Exception e) {
+//                logger.info(e.getMessage());
+//            }
+//        }
 
         @Override
         public void heartBeat(LeaderHealthCheckInfo request, StreamObserver<Empty> responseObserver) {
@@ -238,10 +251,10 @@ public class NodeServer implements NodeClient.NodeClientListener {
                 mListener.get().leaderUpdate(leaderTarget);
             }
             if (status == NodeStatus.LEADER && thisServerData.getId() < request.getId()) {
-                status = NodeStatus.NODE;
+                status = NodeStatus.FOLLOWER;
             }
             logger.info("I am " + thisServerData.getUrl() + " The leader id is: " + leaderTarget.getId());
-            leaderLiveCountDownPeriod.set(5);
+            startPeriodicCheck();
             responseObserver.onNext(Empty.newBuilder().build());
             responseObserver.onCompleted();
         }

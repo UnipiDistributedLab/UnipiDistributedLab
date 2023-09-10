@@ -5,17 +5,17 @@ import org.json.simple.parser.JSONParser;
 
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.util.Random;
 
 public class TimeOutConfigParams {
 
     private static TimeOutConfigParams instance;
-
-    private Long valueStorageSyncPeriodMS;
     private Long leaderHeartBeatPeriodMS;
     private Long serverShutdownTimeoutMs;
-    private Long electionTimeOutPeriodMS;
+    private Integer electionTimeOutPeriodMS;
     private Integer archiveLogsCycle;
     private Integer clearLogFileCycle;
+    private Integer electionFinishTimeOutMinPeriodMS;
     private Boolean supportsClearLogFileCycle;
 
     public static TimeOutConfigParams shared() {
@@ -30,20 +30,19 @@ public class TimeOutConfigParams {
         try {
             JSONParser jsonParser = new JSONParser();
             JSONObject jsonObject = (JSONObject) jsonParser.parse(new InputStreamReader(inputStream, "UTF-8"));
-            valueStorageSyncPeriodMS = (Long) jsonObject.get("valueStorageSyncPeriodMS");
+            Random rand = new Random();
             leaderHeartBeatPeriodMS = (Long) jsonObject.get("leaderHeartBeatPeriodMS");
             serverShutdownTimeoutMs = (Long) jsonObject.get("serverShutdownTimeoutMs");
-            electionTimeOutPeriodMS = (Long) jsonObject.get("electionTimeOutPeriodMS");
             archiveLogsCycle = Integer.parseInt(jsonObject.get("archiveLogsCycle").toString());
             clearLogFileCycle = Integer.parseInt(jsonObject.get("clearLogFileCycle").toString());
             supportsClearLogFileCycle = Boolean.parseBoolean(jsonObject.get("supportsClearLogFileCycle").toString());
+            electionFinishTimeOutMinPeriodMS = Integer.parseInt(jsonObject.get("electionFinishTimeOutMinPeriodMS").toString());
+            int electionTimeOutMaxPeriodMS = Integer.parseInt(jsonObject.get("electionTimeOutMaxPeriodMS").toString());
+            int electionTimeOutMinPeriodMS = Integer.parseInt(jsonObject.get("electionTimeOutMinPeriodMS").toString());
+            electionTimeOutPeriodMS = rand.nextInt(electionTimeOutMaxPeriodMS - electionTimeOutMinPeriodMS) + electionTimeOutMinPeriodMS;
         } catch (Exception e) {
             System.out.println(e.getMessage());
         }
-    }
-
-    public Long getValueStorageSyncPeriodMS() {
-        return valueStorageSyncPeriodMS;
     }
 
     public Long getLeaderHeartBeatPeriodMS() {
@@ -54,7 +53,7 @@ public class TimeOutConfigParams {
         return serverShutdownTimeoutMs;
     }
 
-    public Long getElectionTimeOutPeriodMS() {
+    public Integer getElectionTimeOutPeriodMS() {
         return electionTimeOutPeriodMS;
     }
 
@@ -68,5 +67,9 @@ public class TimeOutConfigParams {
 
     public Boolean getSupportsClearLogFileCycle() {
         return supportsClearLogFileCycle;
+    }
+
+    public Integer getElectionFinishTimeOutMinPeriodMS() {
+        return electionFinishTimeOutMinPeriodMS;
     }
 }
