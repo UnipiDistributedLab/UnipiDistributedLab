@@ -101,3 +101,11 @@ target/protoc-plugins/protoc-3.19.2-windows-x86_64.exe
 target/protoc-plugins/protoc-gen-grpc-java-1.45.0-windows-x86_64.exe
 target/generated-sources/protobuf/java/io/grpc/unipi/distributed/UserName.java
 target/generated-sources/protobuf/java/io/grpc/unipi/distributed/UserNameOrBuilder.java
+target/generated-sources/protobuf/grpc-java/io/grpc/examples/helloworld/GreeterGrpc.java
+target/generated-sources/protobuf/java/io/grpc/examples/helloworld/HelloReply.java
+target/generated-sources/protobuf/java/io/grpc/examples/helloworld/HelloReplyOrBuilder.java
+target/generated-sources/protobuf/java/io/grpc/examples/helloworld/HelloRequest.java
+target/generated-sources/protobuf/java/io/grpc/examples/helloworld/HelloRequestOrBuilder.java
+target/generated-sources/protobuf/java/io/grpc/examples/helloworld/HelloWorldProto.java
+target/protoc-plugins/protoc-3.19.2-osx-aarch_64.exe
+target/protoc-plugins/protoc-gen-grpc-java-1.45.0-osx-aarch_64.exe
